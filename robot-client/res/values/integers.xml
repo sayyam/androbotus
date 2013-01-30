@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="console_max_len">255</integer>
+    <integer name="console_lines">20</integer>
+    <integer name="console_max_lines">200</integer>
+</resources>

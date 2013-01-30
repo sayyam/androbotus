@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/AppTheme"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:background="@android:color/black" >
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" >
+
+        <EditText
+            android:id="@+id/ipAddress"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.19"
+            android:ems="10"
+            android:hint="@string/server_address"
+            android:inputType="phone" >
+
+            <requestFocus />
+        </EditText>
+
+        <Button
+            android:id="@+id/start_btn"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.19"
+            android:ellipsize="start"
+            android:text="@string/start_btn" />
+
+        <Button
+            android:id="@+id/stop_btn"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.19"
+            android:text="@string/stop_btn" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dip"
+        android:layout_weight="0.01"
+        android:orientation="vertical" >
+
+        <TextView
+            android:id="@+id/textView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/controls"
+            android:textColor="@android:color/white"
+            android:textAppearance="?android:attr/textAppearanceLarge" />
+
+        <TextView
+            android:id="@+id/textView2"
+            android:textColor="@android:color/white"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/esc_label"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <SeekBar
+            android:id="@+id/seekBar1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/textView3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/servo_label"
+            android:textColor="@android:color/white"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <SeekBar
+            android:id="@+id/seekBar2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="fill_parent" >
+
+            <TextView
+                android:id="@+id/console"
+                android:layout_width="0dip"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/background_dark"
+                android:ems="10"
+                android:hint="@string/console_output_hint"
+                android:maxLines="25"
+                android:singleLine="false"
+                android:text="@string/console_output_hint"
+                android:textColor="@android:color/white" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>
