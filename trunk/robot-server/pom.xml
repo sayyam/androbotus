@@ -1,0 +1,204 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.androbotus</groupId>
+	<artifactId>robot-server</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>war</packaging>
+
+	<name>robot-server</name>
+	<url>http://maven.apache.org</url>
+
+	<properties>
+	    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	    <hornetq.version>2.2.21.Final</hornetq.version>
+	    <spring.version>3.1.1.RELEASE</spring.version>
+	    <jetty.version>8.1.7.v20120910</jetty.version>
+	    <tomcat.version>7.0.29</tomcat.version>
+	    <jackson.version>1.9.9</jackson.version>
+	    <androbotus.version>0.0.1-SNAPSHOT</androbotus.version>
+	    <xuggle.version>5.4</xuggle.version>
+	</properties>
+	
+	<repositories>
+		<repository>
+			<id>repo1.maven.org.maven2</id>
+			<name>Maven2 repo1</name>
+			<url>http://repo1.maven.org/maven2/</url>
+		</repository>
+		<repository>
+			<id>JBoss Repo</id>
+			<url>https://repository.jboss.org/nexus/content/repositories/releases</url>
+			<name>JBoss Repo</name>
+		</repository>
+		<repository>
+   			<id>xuggle repo</id>
+   			<url>http://xuggle.googlecode.com/svn/trunk/repo/share/java/</url>
+  		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-core</artifactId>
+			<version>${spring.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-beans</artifactId>
+			<type>jar</type>
+			<version>${spring.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+			<type>jar</type>
+			<version>${spring.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<type>jar</type>
+			<version>${spring.version}</version>
+			<scope>test</scope>
+		</dependency>
+		  
+  		<dependency>  
+     		<groupId>org.hornetq</groupId>  
+     		<artifactId>hornetq-core</artifactId>  
+     		<version>${hornetq.version}</version>  
+     		<scope>compile</scope>  
+  		</dependency>  
+  		<dependency>  
+     		<groupId>org.hornetq</groupId>  
+     		<artifactId>hornetq-jms</artifactId>  
+     		<version>${hornetq.version}</version>  
+     		<scope>compile</scope>  
+  		</dependency>  
+  		<dependency>  
+     		<groupId>org.hornetq</groupId>  
+     		<artifactId>hornetq-logging</artifactId>  
+     		<version>${hornetq.version}</version>  
+     		<scope>compile</scope>  
+  		</dependency>  
+  		<dependency>
+			<groupId>org.hornetq</groupId>
+			<artifactId>hornetq-resources</artifactId>
+			<version>${hornetq.version}</version>
+		</dependency>
+  		<dependency>  
+     		<groupId>org.jboss.netty</groupId>  
+     		<artifactId>netty</artifactId>  
+     		<version>3.2.3.Final</version>  
+  		</dependency>  
+  		<dependency>  
+     		<groupId>org.jboss.javaee</groupId>  
+     		<artifactId>jboss-jms-api</artifactId>  
+     		<version>1.1.0.GA</version>  
+     		<scope>compile</scope>  
+  		</dependency>
+  		 
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.8.1</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- dependency>
+  			<groupId>org.junit</groupId>
+  			<artifactId>com.springsource.org.junit</artifactId>
+  			<version>4.7.0</version>
+  			<scope>test</scope>
+		</dependency-->
+		
+		<dependency>
+			<groupId>commons-collections</groupId>
+			<artifactId>commons-collections</artifactId>
+			<version>3.2.1</version>
+		</dependency>
+		
+		<!-- dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-coyote</artifactId>
+			<version>${tomcat.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-catalina</artifactId>
+			<version>${tomcat.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-catalina</artifactId>
+			<version>${tomcat.version}</version>
+			<classifier>sources</classifier>
+			<scope>provided</scope>
+		</dependency-->
+		<dependency>
+  			<groupId>javax.servlet</groupId>
+  			<artifactId>servlet-api</artifactId>
+  			<version>2.5</version>
+  			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-mapper-asl</artifactId>
+			<version>${jackson.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-core-asl</artifactId>
+			<version>${jackson.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.androbotus</groupId>
+			<artifactId>robot-mq</artifactId>
+			<version>${androbotus.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<!-- dependency>
+   			<groupId>xuggle</groupId>
+   			<artifactId>xuggle-xuggler</artifactId>
+   			<version>${xuggle.version}</version>
+  		</dependency-->
+	</dependencies>
+	
+	<build>
+	    <plugins>
+	        <plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>2.1.1</version>
+				<configuration>
+			        <archive>
+			        	<manifest>
+              				<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            			</manifest>
+			          	<manifestEntries/>
+			        </archive>
+		      	</configuration>
+			</plugin>
+	        <plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>tomcat-maven-plugin</artifactId>
+				<version>1.1</version>
+				<configuration>
+					<url>http://localhost:8080/manager/html</url>
+					<path>/androbotus</path>
+					<!-- server>tomcat7</server-->
+					<warFile>target/${artifactId}-${version}.war</warFile>
+        			<username>admin</username>
+        			<password>admin</password>
+				</configuration>
+			</plugin>
+	    </plugins>
+	</build>
+	    
+	
+	
+</project>
