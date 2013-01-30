@@ -1,0 +1,16 @@
+This page provides short instruction on how to deploy androbotus
+
+= Introduction =
+Androbotus consist of 3 main modules:
+
+ * robot-client
+ * robot-server
+ * robot-mq
+
+Robot client is an android application which defines the structure of the robot and it's core logic
+
+Robot server is a robot's backend. It is a web app that allow to run heavy calculations, accept user commands and log telemetry of the robot
+
+Robot MQ contains the core components of the androbotus messaging. This code is to be running both on server and client so it can not contain any platform dependencies...
+
+= Deploying =
