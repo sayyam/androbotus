@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Androbotus - Video Test</title>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+		<script src="./WEB-INF/jwplayer/jwplayer.js"></script>
+		<script>jwplayer.key="Tyzk36a117yCSlzilcfCpDocWrrlhCBPYKoc3w=="</script>
+		<style>
+      		.video-container {
+        		width: 640px;
+        		height: 480px;
+        		display: inline-block;
+        		text-align: center;
+      		}
+	    </style>
+	</head>
+	<body>
+		<img id="video" class="video-container"></img>
+		<script type="text/javascript">
+			var cnt = 0;
+			var newImage = new Image();
+			var imageBase ="/videoStream/video.jpg"; 
+			newImage.src = imageBase;
+			function refreshVideoFrame() {
+				if(newImage.complete) {
+    				document.getElementById("video").src = newImage.src;
+    				newImage = new Image();
+    				newImage.src = imageBase + "#" + cnt;
+        			cnt++;
+				}
+			}
+			//refresh image with 30 fps rate to make illusion of video. Poor man's solution though...
+			setInterval(function(){refreshVideoFrame()}, 30);
+		</script>
+		<INPUT id="btn" TYPE=BUTTON OnClick="refreshVideoFrame();" VALUE="Refresh"/>
+		<!-- div id='mediaplayer'></div>
+		<script type="text/javascript">
+  			jwplayer('mediaplayer').setup({
+    		'flashplayer': 'player.swf',
+    		'id': 'playerID',
+    		'width': '480',
+    		'height': '270',
+    		'controlbar': 'over',
+    		'image': '/thumbs/livestream.jpg',
+    		'file': 'livestream',
+    		'provider': 'rtmp',
+    		'rtmp.subscribe': 'true',
+    		'streamer': 'rtmp://localhost:5080/video/test'
+  		});
+		</script-->
+	</body>		
+</html>
