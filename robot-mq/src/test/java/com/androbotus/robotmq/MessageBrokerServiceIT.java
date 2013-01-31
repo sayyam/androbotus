@@ -85,6 +85,7 @@ public class MessageBrokerServiceIT {
 		};
 		broker.start();
 		consumer.subscribe(broker, "Topic");
+		consumer.start();
 		System.out.println("Broker started");
 		
 		Socket socket = new Socket(InetAddress.getLocalHost().getHostAddress(), 5000);
@@ -113,6 +114,7 @@ public class MessageBrokerServiceIT {
 		
 		Thread.sleep(100000);
 		
+		consumer.stop();
 		broker.stop();
 		connection.close();
 		socket.close();
