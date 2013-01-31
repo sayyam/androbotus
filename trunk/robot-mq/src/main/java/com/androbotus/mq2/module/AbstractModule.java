@@ -17,6 +17,9 @@
 package com.androbotus.mq2.module;
 
 import java.util.LinkedList;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.core.MessageBroker;
@@ -38,6 +41,9 @@ public abstract class AbstractModule implements Module {
 	private Thread t;
 	
 	private LinkedList<Message> msgQueue = new LinkedList<Message>();
+	
+	private Lock lock = new ReentrantLock();
+	private Condition hasMessages = lock.newCondition();
 	
 	protected MessageBroker getBroker(){
 		return broker;
@@ -86,11 +92,16 @@ public abstract class AbstractModule implements Module {
 	}
 	
 	private synchronized void pushMsg(Message msg){
-		if (msgQueue.size() == MSG_Q_SIZE){
-			msgQueue.removeFirst();
+		lock.lock();
+		try {
+			if (msgQueue.size() == MSG_Q_SIZE){
+				msgQueue.removeFirst();
+			}
+			msgQueue.addLast(msg);
+			hasMessages.signal();
+		} finally {
+			lock.unlock();
 		}
-		msgQueue.addLast(msg);
-		msgQueue.notifyAll(); 
 	}
 	
 	private synchronized Message pullMsg(){
@@ -120,19 +131,23 @@ public abstract class AbstractModule implements Module {
 	 */
 	private class Postman implements Runnable{
 		public void run() {
-			while (true){
-				if (msgQueue.size() == 0){
-					try {
-						//if no messages in the queue - just wait
-						msgQueue.wait();
-					} catch (InterruptedException e){
-						//do nothing
+			if (lock.tryLock()){
+				try {
+					while (true){
+						if (msgQueue.size() == 0){
+							//wait till there are messages in the queue
+							hasMessages.await();
+						}
+						//	pull the oldest message and process it
+						Message m = pullMsg();
+						processMessage(m);
 					}
-				}
-				//pull the oldest message
-				Message m = pullMsg();
-				processMessage(m);
-			}
+				} catch (InterruptedException e) {
+					//do nothing
+				} finally {
+					lock.unlock();
+				}	
+			}	
 		}
 	}
 }
