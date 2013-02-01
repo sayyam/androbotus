@@ -37,8 +37,8 @@ If you want to use a different user, then you'll need to change it in the pom fi
 == robot-client ==
 Since robot client is an Android app the best way to configure it is using Eclipse Android plugin.
 
- # The client uses Android IOIO API to connect to external hardware. So you will need to download IOIOLib [https://github.com/ytai/ioio/wiki/IOIOLib-Core-API]
+ # The client uses Android IOIO API to connect to external hardware. So you will need to download IOIOLib ([https://github.com/ytai/ioio/wiki/IOIOLib-Core-API])
  # Now when you have the IOIOLib import it as an Android Eclipse project
  # You also need to add *robot-mq* dependency. Go to client project and right click on *lib* folder. Import the jar file from the file system
 
-After that you can deploy *robot-client* to your Android phone.
+After that you can deploy *robot-client* to your Android phone ([http://developer.android.com/training/basics/firstapp/running-app.html]).
