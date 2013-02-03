@@ -52,7 +52,7 @@ public class PwmModuleImpl extends AbstractModule {
 	}
 	
 	@Override
-	public void receiveMessage(Message message) {
+	public void processMessage(Message message) {
 		if (!started)
 			return;
 		Log.e(TAG, "Message received");

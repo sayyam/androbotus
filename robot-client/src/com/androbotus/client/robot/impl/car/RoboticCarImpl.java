@@ -26,11 +26,11 @@ import android.hardware.SensorManager;
 
 import com.androbotus.client.AndroidLogger;
 import com.androbotus.client.contract.LocalTopics;
+import com.androbotus.client.contract.Topics;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.modules.PwmModuleImpl;
 import com.androbotus.client.robot.modules.SensorModule;
 import com.androbotus.mq2.contract.ControlMessage;
-import com.androbotus.mq2.contract.Topics;
 import com.androbotus.mq2.contract.ControlMessage.ControlNames;
 import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.log.Logger;
