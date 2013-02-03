@@ -88,7 +88,7 @@ public abstract class AbstractRobot extends AbstractModule {
 	};
 	
 	@Override
-	public void receiveMessage(Message message) {
+	public void processMessage(Message message) {
 		if (!(message instanceof ControlMessage)){
 			return;
 		}

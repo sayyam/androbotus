@@ -40,6 +40,7 @@ import android.widget.TextView;
 
 import com.androbotus.client.contract.AttitudeMessage;
 import com.androbotus.client.contract.LocalTopics;
+import com.androbotus.client.contract.Topics;
 import com.androbotus.client.robot.impl.car.RoboticCarImpl;
 import com.androbotus.client.robot.modules.SensorModule.Sensors;
 import com.androbotus.client.streaming.StreamingProcess;
@@ -47,7 +48,6 @@ import com.androbotus.client.streaming.impl.CameraProcessImpl;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
-import com.androbotus.mq2.contract.Topics;
 import com.androbotus.mq2.core.Connection;
 import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.core.TopicListener;
@@ -188,7 +188,7 @@ public class MainActivity extends Activity implements TopicListener{
     		//use local version of the broker
     		Log.e(TAG, "Can't connect to the server", e);
     		writeToConsole("Can't connect to the server: " + e.getMessage());
-    		messageBroker = new MessageBrokerImpl();
+    		messageBroker = new MessageBrokerImpl(new AndroidLogger("Message Broker"));
     	}
     	
     	//init camera

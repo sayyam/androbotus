@@ -25,9 +25,9 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
+import com.androbotus.client.contract.Topics;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
-import com.androbotus.mq2.contract.Topics;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.module.AbstractModule;
 
@@ -165,7 +165,7 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 
 	
 	@Override
-	public void receiveMessage(Message message) {
+	public void processMessage(Message message) {
 		//Do nothing since this module only sends data, but not reacts on input
 	}
 	
