@@ -22,7 +22,9 @@ import java.util.Map;
 import com.androbotus.client.AndroidLogger;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
+import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.log.Logger;
+import com.androbotus.mq2.log.Logger.LogType;
 import com.androbotus.mq2.module.AbstractModule;
 import com.androbotus.mq2.module.Module;
 
@@ -37,25 +39,31 @@ import com.androbotus.mq2.module.Module;
 public abstract class AbstractRobot extends AbstractModule {
 	
 	private final Logger logger = new AndroidLogger("RoboticCar"); 
-	
+
 	/**
 	 * topic to module map
 	 */
-	private Map<String, Module> modules = new HashMap<String, Module>();
+	private Map<String, Module> modules;
 	
 	public AbstractRobot () {
-		init();
-	}
-	
-	private void init(){
-		this.modules = getModules();
 	}
 	
 	/**
-	 * Create and return robot modules.
+	 * Get robot's modules
+	 * @return
+	 */
+	public Map<String, Module> getModules() {
+		if (modules == null){
+			this.modules = defineModules(); 
+		}
+		return modules;
+	}
+	
+	/**
+	 * Define robot modules.
 	 * @return the modules mapped by module name
 	 */
-	protected abstract Map<String, Module> getModules();
+	protected abstract Map<String, Module> defineModules();
 	
 	/**
 	 * Interpret the input control message, derive control commands and route them to the individual modules
@@ -65,22 +73,24 @@ public abstract class AbstractRobot extends AbstractModule {
 	
 	@Override
 	public void start() {
-		if (modules != null){
+		if (modules == null){
+			logger.log(LogType.ERROR, "The robot is not initialized. Can't start");
+		} else {
 			if (getBroker() != null){
 				for (Map.Entry<String, Module> entry: modules.entrySet()){
-					entry.getValue().subscribe(getBroker(), entry.getKey());
 					entry.getValue().start();	
 				}
 			}
 		}
+		super.start();
 	}
 	
 	@Override
 	public void stop() {
+		super.stop();
 		if (modules != null){
 			if (getBroker() != null){
 				for (Map.Entry<String, Module> entry: modules.entrySet()){
-					entry.getValue().unsubscribe(getBroker());
 					entry.getValue().stop();	
 				}
 			}
@@ -88,7 +98,7 @@ public abstract class AbstractRobot extends AbstractModule {
 	};
 	
 	@Override
-	public void processMessage(Message message) {
+	protected void processMessage(Message message) {
 		if (!(message instanceof ControlMessage)){
 			return;
 		}
@@ -97,4 +107,23 @@ public abstract class AbstractRobot extends AbstractModule {
 		routeControlMessage(cm);
 	}
 	
+	@Override
+	public void subscribe(MessageBroker broker, String... topics) {
+		super.subscribe(broker, topics);
+		if (getModules() != null){
+			for (Map.Entry<String, Module> entry: getModules().entrySet()){
+				entry.getValue().subscribe(broker, entry.getKey());
+			}
+		}
+	}
+	
+	@Override
+	public void unsubscribe(MessageBroker broker) {
+		super.unsubscribe(broker);
+		if (getModules() != null){
+			for (Map.Entry<String, Module> entry: getModules().entrySet()){
+				entry.getValue().unsubscribe(broker);
+			}
+		}
+	}
 }

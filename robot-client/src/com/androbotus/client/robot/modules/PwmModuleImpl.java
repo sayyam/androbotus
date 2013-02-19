@@ -16,7 +16,6 @@
  */
 package com.androbotus.client.robot.modules;
 
-import ioio.lib.api.DigitalOutput;
 import ioio.lib.api.IOIO;
 import ioio.lib.api.PwmOutput;
 import android.util.Log;
@@ -32,12 +31,11 @@ import com.androbotus.mq2.module.AbstractModule;
  * 
  */
 public class PwmModuleImpl extends AbstractModule {
-	private final static String TAG = "EscModule";
+	private final static String TAG = "PwmModule";
 	private final static int RESOLUTION = 10;	
+	private final static Float MINVALUE = 1000f;
 	
-	
-	public final static Float MAXVALUE = 2000f;
-	public final static Float MINVALUE = 1000f;
+	//public final static Float MAXVALUE = 2000f;	
 	
 	private float value = 50f;
 	private boolean started = false;
@@ -53,7 +51,7 @@ public class PwmModuleImpl extends AbstractModule {
 	
 	@Override
 	public void processMessage(Message message) {
-		if (!started)
+		if (!isStarted())
 			return;
 		Log.e(TAG, "Message received");
 		if (!(message instanceof ControlMessage))
@@ -69,7 +67,9 @@ public class PwmModuleImpl extends AbstractModule {
 		value += RESOLUTION * cm.getValue();
 		
 		try {
-			pwm.setPulseWidth(value*10 + 1000); //to fit 1000 to 2000 microsec range
+			if (pwm != null){
+				pwm.setPulseWidth(value + MINVALUE); //to fit 1000 to 2000 microsec range
+			}	
 		} catch (Exception e) {
 			Log.e(TAG, "Can't access motor", e);
 		}
@@ -82,16 +82,22 @@ public class PwmModuleImpl extends AbstractModule {
 	
 	@Override
 	public void start() {
-		//do nothing
 		try {
-			pwm = ioio.openPwmOutput(new DigitalOutput.Spec(pin, DigitalOutput.Spec.Mode.OPEN_DRAIN), 50);
+			//Switched off for testing
+			//pwm = ioio.openPwmOutput(new DigitalOutput.Spec(pin, DigitalOutput.Spec.Mode.OPEN_DRAIN), 50);
+			//started = true;
+			super.start();
 		} catch (Exception e){	
 			Log.e(TAG, "Can't start motor", e);
 		}
 	}
+	
 	@Override
 	public void stop() {
-		pwm.close();
+		if (pwm != null){
+			pwm.close();
+		}
+		super.stop();
 	};
 	
 }

@@ -50,7 +50,7 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 	private Sensor accelerometer;
 	private Sensor orientation;
 	private Sensor gyro;
-	private boolean isRunning = false;
+	//private boolean isRunning = false;
 	
 	private long time = 0;
 	private Map<String, SensorMessage> messageMap = new HashMap<String, SensorMessage>();
@@ -138,29 +138,31 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 	}
 	
 	private void registerSensors(){
-		if (isRunning)
+		if (isStarted())
 			return;
     	sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
     	sensorManager.registerListener(this, orientation, SensorManager.SENSOR_DELAY_NORMAL);
     	sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_NORMAL);
-    	isRunning = true;
+    	//isRunning = true;
 	}
 	
 	private void unregisterSensors(){
 		sensorManager.unregisterListener(this);
-		isRunning = false;
+		//isRunning = false;
 	}
 	
 	@Override
 	public void start(){
 		Log.d("Sensor Service", "Starting sensors");
 		registerSensors();
+		super.start();
 	}
 	
 	@Override
 	public void stop(){
 		Log.d("Sensor Service", "Stopping sensors");
 		unregisterSensors();
+		super.stop();
 	}
 
 	
@@ -168,6 +170,8 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 	public void processMessage(Message message) {
 		//Do nothing since this module only sends data, but not reacts on input
 	}
+	
+	
 	
 	public enum Sensors {
 		ACCELERATION, ORIENTATION, GYRO
