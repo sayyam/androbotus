@@ -26,9 +26,11 @@ import java.util.List;
 import java.util.Map;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.Configuration;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.SurfaceView;
@@ -39,6 +41,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.androbotus.client.contract.AttitudeMessage;
+import com.androbotus.client.contract.AttitudeMessage.Parameters;
 import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.robot.impl.car.RoboticCarImpl;
@@ -51,7 +54,6 @@ import com.androbotus.mq2.contract.SensorMessage;
 import com.androbotus.mq2.core.Connection;
 import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.core.TopicListener;
-import com.androbotus.mq2.core.impl.MessageBrokerImpl;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPRemoteConnection;
 
@@ -62,7 +64,7 @@ public class MainActivity extends Activity implements TopicListener{
 	private final static Long REFRESH_RATE = 100L;
 	private final static int CONSOLE_MAX_LINES = 15;
 	
-	private String ipAddress = "192.168.0.105";
+	private String ipAddress = "192.168.0.103";
 	private int brokerPort = 9000;
 	private int videoPort = 9002;
 	
@@ -83,11 +85,11 @@ public class MainActivity extends Activity implements TopicListener{
 	
 	//local cache for displayed values
 	private Map<String, Integer> cache = new HashMap<String, Integer>();
-	private float servo;
-	private float motor;
+	private float servo = 50f;
+	private float motor = 50f;
 	
 	private long lastLoaded = System.currentTimeMillis();
-	//private PowerManager.WakeLock wakeLock;
+	private PowerManager.WakeLock wakeLock;
 	
 	
 	
@@ -152,8 +154,17 @@ public class MainActivity extends Activity implements TopicListener{
             }
         });
         
-        //PowerManager pm = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
-        //wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, TAG);
+        PowerManager pm = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
+        wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, TAG);
+        
+        //set the initial values for the seek bars
+        initProgressBar((SeekBar)findViewById(R.id.seekBar2), (int)motor);
+        initProgressBar((SeekBar)findViewById(R.id.seekBar1), (int)servo);
+    }
+    
+    private void initProgressBar(SeekBar sb, int defaultV){
+    	sb.setMax(100);
+    	sb.setProgress(defaultV);
     }
     
     private void writeToConsole(String line){
@@ -182,13 +193,18 @@ public class MainActivity extends Activity implements TopicListener{
     		connection = new TCPRemoteConnection(brokerPort, serverAddress);	
     		connection.open();
     		messageBroker = new RemoteMessageBrokerImpl(connection, new AndroidLogger("Message Broker"));
-    		robot.start();
+    		messageBroker.start();
     		writeToConsole("Message broker connected...");
+    	} catch (UnknownHostException e){
+    		Log.e(TAG, "Can't locate server for ip: " + ipAddress, e);
+    		writeToConsole("Can't locate server for ip: " + ipAddress);
+    		//return;
     	} catch (Exception e){
     		//use local version of the broker
-    		Log.e(TAG, "Can't connect to the server", e);
-    		writeToConsole("Can't connect to the server: " + e.getMessage());
-    		messageBroker = new MessageBrokerImpl(new AndroidLogger("Message Broker"));
+    		Log.e(TAG, "Can't start broker", e);
+    		writeToConsole("Can't start broker: " + e.getMessage());
+    		//messageBroker = new MessageBrokerImpl(new AndroidLogger("Message Broker"));
+    		return;
     	}
     	
     	//init camera
@@ -205,22 +221,16 @@ public class MainActivity extends Activity implements TopicListener{
     	}
     	
     	//register robot
-    	robot.subscribe(messageBroker);
-    	
-    	try {
-    		messageBroker.start();
-    		//TODO: register method is deprecated, need to refactor the code to use special module instead
-    		messageBroker.register(Topics.SENSOR.name(), this);
-    		started = true;
-    	} catch (UnknownHostException e){
-    		Log.e(TAG, "Can't locate server for ip: " + ipAddress, e);
-    		writeToConsole("Can't locate server for ip: " + ipAddress);
-    	} catch	(Exception e){
-    		Log.e(TAG, "Can't start message broker", e);    		
-    	} 
-    	
+    	robot.subscribe(messageBroker, Topics.CONTROL.name());
+    	robot.start();
+    	    	
+    	//TODO: register method is deprecated, need to refactor the code to use special module instead
+    	messageBroker.register(Topics.SENSOR.name(), this);
+    	messageBroker.register(LocalTopics.ATTITUDE.name(), this);
+    	started = true;
+    	 
     	//lock the screen
-    	//wakeLock.acquire();
+    	wakeLock.acquire();
 		return;
 	}
     
@@ -259,6 +269,18 @@ public class MainActivity extends Activity implements TopicListener{
     	connection = null;
     	cameraProcess = null;
     	writeToConsole("Message Broker stopped...");
+    	synchronized (this) {
+    		if (wakeLock != null && wakeLock.isHeld()){
+    			try {
+    				wakeLock.release();
+    			} catch (Exception e){
+    				Log.e(TAG, "Can't release lock", e);
+    				throw new RuntimeException(e);
+    			}
+    		} else {
+    			//do nothing
+    		}
+		}
     }
         
     @Override
@@ -332,8 +354,22 @@ public class MainActivity extends Activity implements TopicListener{
         	}	
     	} else if (message instanceof AttitudeMessage){
     		AttitudeMessage am = (AttitudeMessage)message;
-    		motor = am.getMotor();
-    		servo = am.getServo();
+    		if (am.getParameterMap().get(Parameters.MOTOR.name()) != null){
+    			motor = am.getParameterMap().get(Parameters.MOTOR.name());
+    			
+    	    	SeekBar sb = (SeekBar)findViewById(R.id.seekBar1);
+    	    	//int current = sb.getProgress();
+    	    	//int newV = Float.valueOf(motor).intValue();
+    	    	sb.setProgress((int)motor);
+    		}
+    		if (am.getParameterMap().get(Parameters.SERVO.name()) != null){
+    			servo = am.getParameterMap().get(Parameters.SERVO.name());
+
+    			SeekBar sb = (SeekBar)findViewById(R.id.seekBar2);
+    	    	//int current = sb.getProgress();
+    	    	//int newV = Float.valueOf(servo).intValue();
+    	    	sb.setProgress((int)servo);
+    		}
     	} else {
     		Log.e(TAG, "Unacceptable message type");
     		return;
@@ -371,24 +407,7 @@ public class MainActivity extends Activity implements TopicListener{
     	}
     	
     }
-    
-    /**
-     * Updates seek bars controls given new values for the corresponding modules
-     */
-    public void updateVisualState(){
-    	SeekBar steerBar = (SeekBar)findViewById(R.id.seekBar2);
-    	steerBar.setMax(100);
-    	int current = steerBar.getProgress();
-    	int newV = Float.valueOf(servo).intValue();
-    	steerBar.setProgress(newV - current);
-    	
-    	SeekBar motorBar = (SeekBar)findViewById(R.id.seekBar1);
-    	motorBar.setMax(100);
-    	current = motorBar.getProgress();
-    	newV = Float.valueOf(motor).intValue();
-    	steerBar.setProgress(newV - current);
-    }
-    
+        
     private String getValue(Object value){
     	return value == null ? "" : value.toString();
     }
@@ -434,7 +453,9 @@ public class MainActivity extends Activity implements TopicListener{
     		cameraProcess.stop();
     	}*/
     	stop();
+    	
     }
+    
     
     private enum FieldNames {
     	Accel_X, Accel_Y, Accel_Z, 

@@ -22,5 +22,5 @@ package com.androbotus.client.contract;
  *
  */
 public enum LocalTopics {
-	ESC, SERVO
+	ESC, SERVO, ATTITUDE
 }

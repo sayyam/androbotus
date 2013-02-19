@@ -16,28 +16,24 @@
  */
 package com.androbotus.client.contract;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import com.androbotus.mq2.contract.Message;
+
 /**
  * The message type used to transfer information about robot attitude
  * @author maximlukichev
  *
  */
-public class AttitudeMessage {
-	private float servo;
-	private float motor;
+public class AttitudeMessage implements Message {
+	private Map<String, Float> parameterMap = new HashMap<String, Float>();
 	
-	public float getMotor() {
-		return motor;
+	public Map<String, Float> getParameterMap() {
+		return parameterMap;
 	}
 	
-	public float getServo() {
-		return servo;
-	}
-	
-	public void setServo(float servo) {
-		this.servo = servo;
-	}
-	
-	public void setMotor(float motor) {
-		this.motor = motor;
+	public static enum Parameters {
+		MOTOR, SERVO
 	}
 }

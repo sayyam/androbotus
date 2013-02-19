@@ -25,14 +25,15 @@ import java.util.Map;
 import android.hardware.SensorManager;
 
 import com.androbotus.client.AndroidLogger;
+import com.androbotus.client.contract.AttitudeMessage.Parameters;
 import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.modules.PwmModuleImpl;
+import com.androbotus.client.robot.modules.ReportingPwmModule;
 import com.androbotus.client.robot.modules.SensorModule;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.ControlMessage.ControlNames;
-import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
 import com.androbotus.mq2.module.Module;
@@ -51,19 +52,19 @@ public class RoboticCarImpl extends AbstractRobot{
 	
 	private SensorManager sensorManager; 
 	
-	private Map<String, Module> modules = new HashMap<String, Module>();
-	
 	public RoboticCarImpl (SensorManager sensorManager) {
+		super();
 		ioio = IOIOFactory.create();
 		this.sensorManager = sensorManager;
 	}
 	
 	@Override
-	protected Map<String, Module> getModules(){
+	protected Map<String, Module> defineModules(){
 		Map<String, Module> modules = new HashMap<String, Module>();
-		
-		modules.put(LocalTopics.SERVO.name(), new PwmModuleImpl(ioio, 6));
-		modules.put(LocalTopics.ESC.name(), new PwmModuleImpl(ioio, 5));
+		this.servo =  new ReportingPwmModule(ioio, 6, Parameters.SERVO.name());
+		this.motor = new ReportingPwmModule(ioio, 5, Parameters.MOTOR.name());
+		modules.put(LocalTopics.SERVO.name(), this.servo);
+		modules.put(LocalTopics.ESC.name(), this.motor);
 		modules.put(Topics.SENSOR.name(), new SensorModule(sensorManager));
 		
 		return modules;
@@ -86,36 +87,25 @@ public class RoboticCarImpl extends AbstractRobot{
 	
 	@Override
 	public void start() {
-		super.start();
 		try {
-			ioio.waitForConnect();
+			//Switched off for testing
+			//ioio.waitForConnect();
 		} catch (Exception e){
 			logger.log(LogType.ERROR, "Can't establish connection to IOIO", e);
 		}
 		//start all the modules
-		for (Module module: modules.values()){
-			module.start();
-		}
+		super.start();
 	}
 		
 	@Override
 	public void stop() {
 		super.stop();
-		for (Module module: modules.values()){
-			module.stop();
-		}
 		ioio.disconnect();
-		try {
-			ioio.waitForDisconnect();
-		} catch (Exception e ) {
-			logger.log(LogType.ERROR, "Exception while disconnecting from IOIO", e);
-		}
-	};
-	
-	@Override
-	public void subscribe(MessageBroker broker, String... topics) {
-		super.subscribe(broker, topics);
-		servo.subscribe(broker, LocalTopics.SERVO.name());
-		motor.subscribe(broker, LocalTopics.ESC.name());
-;	}
+		//swithed off for testing
+		//try {
+		//	ioio.waitForDisconnect();
+		//} catch (Exception e ) {
+		//	logger.log(LogType.ERROR, "Exception while disconnecting from IOIO", e);
+		//}
+	};	
 }
