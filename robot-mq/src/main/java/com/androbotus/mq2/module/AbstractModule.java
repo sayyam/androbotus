@@ -45,6 +45,8 @@ public abstract class AbstractModule implements Module {
 	private Lock lock = new ReentrantLock();
 	private Condition hasMessages = lock.newCondition();
 	
+	private boolean started = false;
+	
 	protected MessageBroker getBroker(){
 		return broker;
 	}
@@ -64,7 +66,7 @@ public abstract class AbstractModule implements Module {
 	}
 
 	public void unsubscribe(MessageBroker broker) {
-		if (broker != null){
+		if (broker != null && topics != null){
 			for (String topic: topics) {
 				broker.unregister(topic, this);
 			}
@@ -82,6 +84,7 @@ public abstract class AbstractModule implements Module {
 		//start the postman thread
 		t = new Thread(new Postman());
 		t.start();
+		setStarted(true);
 	}
 	
 	public void stop() {
@@ -89,9 +92,18 @@ public abstract class AbstractModule implements Module {
 			t.interrupt();
 		}
 		t = null;
+		setStarted(false);
 	}
 	
-	private synchronized void pushMsg(Message msg){
+	protected boolean isStarted(){
+		return started;
+	}
+	
+	protected void setStarted(boolean started){
+		this.started = started;
+	}
+	
+	private void pushMsg(Message msg){
 		lock.lock();
 		try {
 			if (msgQueue.size() == MSG_Q_SIZE){
@@ -104,7 +116,7 @@ public abstract class AbstractModule implements Module {
 		}
 	}
 	
-	private synchronized Message pullMsg(){
+	private Message pullMsg(){
 		if (msgQueue.size() == 0){
 			return null;
 		}
