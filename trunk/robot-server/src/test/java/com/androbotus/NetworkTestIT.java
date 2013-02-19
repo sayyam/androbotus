@@ -20,6 +20,7 @@ import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.core.MessageHandler;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPLocalConnection;
+import com.androbotus.mq2.core.impl.TCPRemoteConnection;
 import com.androbotus.mq2.core.impl.UDPMessageHandlerImpl;
 import com.androbotus.mq2.log.impl.SimpleLogger;
 
