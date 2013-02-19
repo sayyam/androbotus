@@ -4,7 +4,7 @@
 
 	<groupId>com.androbotus</groupId>
 	<artifactId>robot-server</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<packaging>war</packaging>
 
 	<name>robot-server</name>
@@ -17,7 +17,7 @@
 	    <jetty.version>8.1.7.v20120910</jetty.version>
 	    <tomcat.version>7.0.29</tomcat.version>
 	    <jackson.version>1.9.9</jackson.version>
-	    <androbotus.version>0.0.1-SNAPSHOT</androbotus.version>
+	    <androbotus.version>0.0.2-SNAPSHOT</androbotus.version>
 	    <xuggle.version>5.4</xuggle.version>
 	</properties>
 	
