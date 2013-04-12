@@ -73,6 +73,7 @@ public class TCPLocalConnection implements Connection{
 						isOpen = true;
 					} catch (IOException e) {
 						System.out.println("Exception while accepting client connectoin..." + e.getMessage());
+						//e.printStackTrace();
 						//throw new RuntimeException("Exception while accepting client connectoin...", e);
 					}
 				}

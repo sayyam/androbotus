@@ -16,8 +16,7 @@
  */
 package com.androbotus.client.robot;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import com.androbotus.client.AndroidLogger;
 import com.androbotus.mq2.contract.ControlMessage;
@@ -43,7 +42,7 @@ public abstract class AbstractRobot extends AbstractModule {
 	/**
 	 * topic to module map
 	 */
-	private Map<String, Module> modules;
+	private List<ModuleEntry> modules;
 	
 	public AbstractRobot () {
 	}
@@ -52,7 +51,7 @@ public abstract class AbstractRobot extends AbstractModule {
 	 * Get robot's modules
 	 * @return
 	 */
-	public Map<String, Module> getModules() {
+	public List<ModuleEntry> getModules() {
 		if (modules == null){
 			this.modules = defineModules(); 
 		}
@@ -61,9 +60,9 @@ public abstract class AbstractRobot extends AbstractModule {
 	
 	/**
 	 * Define robot modules.
-	 * @return the modules mapped by module name
+	 * @return the modules mapped with topics
 	 */
-	protected abstract Map<String, Module> defineModules();
+	protected abstract List<ModuleEntry> defineModules();
 	
 	/**
 	 * Interpret the input control message, derive control commands and route them to the individual modules
@@ -73,12 +72,12 @@ public abstract class AbstractRobot extends AbstractModule {
 	
 	@Override
 	public void start() {
-		if (modules == null){
+		if (getModules() == null){
 			logger.log(LogType.ERROR, "The robot is not initialized. Can't start");
 		} else {
 			if (getBroker() != null){
-				for (Map.Entry<String, Module> entry: modules.entrySet()){
-					entry.getValue().start();	
+				for (ModuleEntry entry: getModules()){
+					entry.getModule().start();	
 				}
 			}
 		}
@@ -88,10 +87,10 @@ public abstract class AbstractRobot extends AbstractModule {
 	@Override
 	public void stop() {
 		super.stop();
-		if (modules != null){
+		if (getModules() != null){
 			if (getBroker() != null){
-				for (Map.Entry<String, Module> entry: modules.entrySet()){
-					entry.getValue().stop();	
+				for (ModuleEntry entry: getModules()){
+					entry.getModule().stop();	
 				}
 			}
 		}	
@@ -111,8 +110,10 @@ public abstract class AbstractRobot extends AbstractModule {
 	public void subscribe(MessageBroker broker, String... topics) {
 		super.subscribe(broker, topics);
 		if (getModules() != null){
-			for (Map.Entry<String, Module> entry: getModules().entrySet()){
-				entry.getValue().subscribe(broker, entry.getKey());
+			for (ModuleEntry entry: getModules()){
+				for (String topic: entry.getTopics()){
+					entry.getModule().subscribe(broker, topic);
+				}
 			}
 		}
 	}
@@ -121,9 +122,27 @@ public abstract class AbstractRobot extends AbstractModule {
 	public void unsubscribe(MessageBroker broker) {
 		super.unsubscribe(broker);
 		if (getModules() != null){
-			for (Map.Entry<String, Module> entry: getModules().entrySet()){
-				entry.getValue().unsubscribe(broker);
+			for (ModuleEntry entry: getModules()){
+				entry.getModule().unsubscribe(broker);
 			}
+		}
+	}
+	
+	public class ModuleEntry {
+		private Module module;
+		private String[] topics;
+		
+		public ModuleEntry(Module module, String[] topics){
+			this.module = module;
+			this.topics = topics;
+		}
+		
+		public Module getModule() {
+			return module;
+		}
+		
+		public String[] getTopics() {
+			return topics;
 		}
 	}
 }

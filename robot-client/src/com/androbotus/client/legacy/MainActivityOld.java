@@ -15,7 +15,6 @@ import android.os.IBinder;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
-import android.widget.EditText;
 
 import com.androbotus.client.R;
 import com.androbotus.client.robot.modules.SensorModule;

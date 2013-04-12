@@ -17,5 +17,8 @@
 package com.androbotus.servlet.contract;
 
 public enum ControlTypes {
-	STEERING, ACCELERATION, DEFAULT
+	STEERING, ACCELERATION, 
+	THRUST, ROLL, PITCH, YAW,
+	PPARAM, IPARAM, DPARAM, IMAX,
+	DEFAULT
 }	

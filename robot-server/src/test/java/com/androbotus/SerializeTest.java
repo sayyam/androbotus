@@ -21,7 +21,7 @@ public class SerializeTest {
 	public void serializeSensorMessageTest() throws Exception {
 		SensorMessage ssm = new SensorMessage();
 		ssm.setSensorName("Accel");
-		Map<String, Integer> vm = new HashMap<String, Integer>();
+		Map<String, Object> vm = new HashMap<String, Object>();
 		vm.put("key", 0);
 		ssm.setValueMap(vm);
 		
@@ -46,7 +46,7 @@ public class SerializeTest {
 	public void serializeSocketMessageTest() throws Exception {
 		SensorMessage ssm = new SensorMessage();
 		ssm.setSensorName("Accel");
-		Map<String, Integer> vm = new HashMap<String, Integer>();
+		Map<String, Object> vm = new HashMap<String, Object>();
 		vm.put("key", 0);
 		ssm.setValueMap(vm);
 		SocketMessage sm = new SocketMessage();

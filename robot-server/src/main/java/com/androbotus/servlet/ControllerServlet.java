@@ -35,7 +35,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import com.androbotus.contract.Topics;
 import com.androbotus.module.ControlModuleImpl;
-import com.androbotus.mq2.contract.ControlMessage.ControlNames;
+import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
 import com.androbotus.mq2.core.Connection;
@@ -45,6 +45,7 @@ import com.androbotus.mq2.core.impl.TCPLocalConnection;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
 import com.androbotus.mq2.log.impl.SimpleLogger;
+import com.androbotus.servlet.contract.Attitude;
 import com.androbotus.servlet.contract.Control;
 import com.androbotus.servlet.contract.ControlTypes;
 import com.androbotus.servlet.contract.Sensor;
@@ -75,7 +76,8 @@ public class ControllerServlet extends HttpServlet {
 	// private DatagramSocket receiver;
 
 	private Map<String, String> sensorData = new HashMap<String, String>();
-
+	private Map<String, Float> attitudeMap = new HashMap<String, Float>();
+	
 	@Override
 	public void init() throws ServletException {
 		try {
@@ -96,14 +98,40 @@ public class ControllerServlet extends HttpServlet {
 			messageBroker.start();
 			messageBroker.register(Topics.SENSOR.name(), new TopicListener() {
 				public void receiveMessage(Message message) {
-					if (!(message instanceof SensorMessage))
+					if (message instanceof SensorMessage){
+						
+						SensorMessage sm = (SensorMessage) message;
+						Map<String, Object> smValues = sm.getValueMap();
+						if (smValues == null)
+							return;
+					
+						//	translate float sm values to a 2 digit after dot format
+						StringBuffer sb = new StringBuffer();
+						for (String key: smValues.keySet()){
+							sb.append(key);
+							sb.append("=");
+							Object value = smValues.get(key);
+						
+							if (value instanceof Float){
+								Float fv = (Float) value;
+								//keep only 2 digits after dot
+								int intv = (int)(fv * 100); 
+								fv = (float)intv/100f; 
+								sb.append(fv);
+							} else {
+								sb.append(value.toString());
+							}
+						}
+						sensorData.put(sm.getSensorName(), sb.toString());
+					} else if (message instanceof AttitudeMessage){
+						AttitudeMessage am = (AttitudeMessage)message;
+						
+						for (Map.Entry<String, Float> entry: am.getParameterMap().entrySet()){
+							attitudeMap.put(entry.getKey(), entry.getValue());	
+						}
+					} else {
 						return;
-					SensorMessage sm = (SensorMessage) message;
-					Map<String, Integer> smValues = sm.getValueMap();
-					if (smValues == null)
-						return;
-
-					sensorData.put(sm.getSensorName(), smValues.toString());
+					}
 				}
 			});
 		} catch (Exception e) {
@@ -132,20 +160,32 @@ public class ControllerServlet extends HttpServlet {
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException {
 
-		List<Sensor> sList = new ArrayList<Sensor>();
-		for (String sName : sensorData.keySet()) {
-			Sensor sensor = new Sensor();
-			sensor.setName(sName);
-			sensor.setType("string");
-			sensor.setValue(sensorData.get(sName));
-			sList.add(sensor);
+		String uri = req.getRequestURI();
+		Object res = null;
+		if (uri.endsWith("/sensor")){
+			//get sensor data
+			List<Sensor> sList = new ArrayList<Sensor>();
+			for (String sName : sensorData.keySet()) {
+				Sensor sensor = new Sensor();
+				sensor.setName(sName);
+				sensor.setType("string");
+				sensor.setValue(sensorData.get(sName));
+				sList.add(sensor);
+			}
+
+			Sensors sensors = new Sensors();
+			sensors.setSensors(sList);
+			res = sensors;
+		} else if (uri.endsWith("/attitude")){
+			//get attitude data
+			Attitude att = new Attitude();
+			att.setAttitudeMap(attitudeMap);
+			
+			res = att;
 		}
 
-		Sensors sensors = new Sensors();
-		sensors.setSensors(sList);
-
 		ObjectMapper om = new ObjectMapper();
-		String s = om.writeValueAsString(sensors);
+		String s = om.writeValueAsString(res);
 
 		PrintWriter pw = resp.getWriter();
 		pw.write(s);
@@ -184,27 +224,52 @@ public class ControllerServlet extends HttpServlet {
 		String newValue = control.getControlValue();
 
 		if (type == ControlTypes.STEERING) {
-			int newValueInt;
-			try {
-				newValueInt = Integer.parseInt(newValue);
-			} catch (NumberFormatException e) {
-				throw new ServletException(e);
-			}
-
-			// String currentValue = steering.getControlValue();
-			this.control.publishControlValue(ControlNames.SERVO, newValueInt);
+			processIntControlValue(newValue, "SERVO");
 		} else if (type == ControlTypes.ACCELERATION) {
-			int newValueInt;
-			try {
-				newValueInt = Integer.parseInt(newValue);
-			} catch (NumberFormatException e) {
-				throw new ServletException(e);
-			}
-			// int currentValue = accelerationModule.getAccelerationValue();
-			this.control.publishControlValue(ControlNames.ESC, newValueInt);
+			processIntControlValue(newValue, "ESC");
+		} else if (type == ControlTypes.THRUST) {
+			processIntControlValue(newValue, "THRUST");
+		} else if (type == ControlTypes.ROLL) {
+			processIntControlValue(newValue, "ROLL");
+		} else if (type == ControlTypes.PITCH) {
+			processIntControlValue(newValue, "PITCH");
+		} else if (type == ControlTypes.YAW) {
+			processIntControlValue(newValue, "YAW");
+		}  else if (type == ControlTypes.PPARAM) {
+			processFloatControlValue(newValue, "PPARAM");
+		} else if (type == ControlTypes.DPARAM) {
+			processFloatControlValue(newValue, "DPARAM");
+		} else if (type == ControlTypes.IPARAM) {
+			processFloatControlValue(newValue, "IPARAM");
+		} else if (type == ControlTypes.IMAX) {
+			processFloatControlValue(newValue, "IMAX");
 		} else {
 			throw new ServletException("Unknown control type: " + type.name());
 		}
 
+	}
+	
+	private void processIntControlValue(String value, String controlName) throws ServletException {
+		int newValueInt;
+		try {
+			newValueInt = Integer.parseInt(value);
+		} catch (NumberFormatException e) {
+			throw new ServletException(e);
+		}
+		// int currentValue = accelerationModule.getAccelerationValue();
+		this.control.publishControlValue(controlName, newValueInt);
+
+	}
+	
+	private void processFloatControlValue(String value, String controlName) throws ServletException {
+		float newValueF;
+		try {
+			newValueF = Float.parseFloat(value);
+		} catch (NumberFormatException e) {
+			throw new ServletException(e);
+		}
+		// int currentValue = accelerationModule.getAccelerationValue();
+		this.control.publishControlValue(controlName, newValueF);
+	
 	}
 }

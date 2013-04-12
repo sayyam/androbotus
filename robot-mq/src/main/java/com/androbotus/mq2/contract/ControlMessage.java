@@ -24,7 +24,7 @@ public class ControlMessage implements Message{
 	 */
 	private static final long serialVersionUID = 7051177073913346426L;
 	
-	private ControlNames controlName;
+	private String controlName;
 	private float value;
 	
 	public float getValue() {
@@ -35,15 +35,12 @@ public class ControlMessage implements Message{
 		this.value = value;
 	}
 	
-	public ControlNames getControlName() {
+	public String getControlName() {
 		return controlName;
 	}
 	
-	public void setControlName(ControlNames controlName) {
+	public void setControlName(String controlName) {
 		this.controlName = controlName;
 	}
 	
-	public enum ControlNames {
-		ESC, SERVO
-	}
 }

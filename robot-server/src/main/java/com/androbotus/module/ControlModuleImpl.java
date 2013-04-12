@@ -18,7 +18,6 @@ package com.androbotus.module;
 
 import com.androbotus.contract.Topics;
 import com.androbotus.mq2.contract.ControlMessage;
-import com.androbotus.mq2.contract.ControlMessage.ControlNames;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.module.AbstractModule;
@@ -41,7 +40,7 @@ public class ControlModuleImpl extends AbstractModule {
 	 * @param control the name of the control
 	 * @param newValue the new value
 	 */
-	public void publishControlValue(ControlNames control, float newValue){
+	public void publishControlValue(String control, float newValue){
 		if (getBroker() == null)
 			return;
 		
@@ -52,7 +51,7 @@ public class ControlModuleImpl extends AbstractModule {
 		RemoteMessageBrokerImpl broker = (RemoteMessageBrokerImpl)getBroker();
 		try {
 			broker.pushMessageRemote(Topics.CONTROL.name(), cm);
-			System.out.println("Send control msg " + cm.getControlName().name());
+			System.out.println("Send control msg " + cm.getControlName());
 		} catch (Exception e){
 			e.printStackTrace();
 		}

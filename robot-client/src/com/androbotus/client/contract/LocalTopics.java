@@ -22,5 +22,5 @@ package com.androbotus.client.contract;
  *
  */
 public enum LocalTopics {
-	ESC, SERVO, ATTITUDE
+	ESC, SERVO, ATTITUDE, THRUST, ROLL, PITCH, YAW, GYRO, ACCELERATION, ORIENTATION, GRAVITY, ROTATION_VECTOR, LOGGER
 }

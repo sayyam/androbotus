@@ -45,7 +45,94 @@
         android:layout_height="0dip"
         android:layout_weight="0.01"
         android:orientation="vertical" >
+		
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
 
+            <TextView
+                android:id="@+id/textView4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/accelOutputLabel"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:textColor="@android:color/white" />
+            <TextView
+            	android:id="@+id/accelOutput"
+            	android:layout_width="match_parent"
+            	android:layout_height="wrap_content"
+            	android:hint="@string/accelOutputHint"
+            	android:textAppearance="?android:attr/textAppearanceMedium"
+            	android:textColor="@android:color/white"/>
+            
+        </LinearLayout>
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
+        	<TextView
+            	android:id="@+id/textView5"
+            	android:layout_width="wrap_content"
+            	android:layout_height="wrap_content"
+            	android:text="@string/gyroOutputLabel"
+            	android:textAppearance="?android:attr/textAppearanceLarge"
+            	android:textColor="@android:color/white" />
+
+        	<TextView
+            	android:id="@+id/gyroOutput"
+            	android:layout_width="match_parent"
+            	android:layout_height="wrap_content"
+            	android:hint="@string/gyroOutputHint"
+            	android:textAppearance="?android:attr/textAppearanceMedium"
+            	android:textColor="@android:color/white"/>
+				
+        </LinearLayout>
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
+
+            <TextView
+                android:id="@+id/textViewGravity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/gravityLabel"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:textColor="@android:color/white" />
+
+            <TextView
+                android:id="@+id/gravityOutput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/gravityOutputHint"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@android:color/white"/>
+            
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
+
+            <TextView
+                android:id="@+id/textViewRVector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/rvectorLabel"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:textColor="@android:color/white" />
+
+            <TextView
+                android:id="@+id/rvectorOutput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/rvectorOutputHint"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@android:color/white"/>
+            
+        </LinearLayout>
+        
+        
         <TextView
             android:id="@+id/textView1"
             android:layout_width="wrap_content"
@@ -82,13 +169,13 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="fill_parent" >
+            android:layout_height="wrap_content"
+            android:orientation="vertical" >
 
             <TextView
                 android:id="@+id/console"
-                android:layout_width="0dip"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
+                android:layout_width="fill_parent"
+                android:layout_height="329dp"
                 android:background="@android:color/background_dark"
                 android:ems="10"
                 android:hint="@string/console_output_hint"
