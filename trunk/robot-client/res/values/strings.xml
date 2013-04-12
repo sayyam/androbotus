@@ -15,5 +15,13 @@
     <string name="servo_label">Servo level</string>
     <string name="console">Console</string>
     <string name="console_output_hint">Console output...</string>
+    <string name="accelOutputLabel">Accel:</string>
+    <string name="accelOutputHint">Acceleration Data</string>
+    <string name="gyroOutputLabel">Gyro:</string>
+    <string name="gyroOutputHint">Gyro data</string>
+    <string name="gravityLabel">Gravity</string>
+    <string name="gravityOutputHint">Gravity output</string>
+    <string name="rvectorLabel">R.Vector</string>
+    <string name="rvectorOutputHint">Rotation Vector Data</string>
 
 </resources>

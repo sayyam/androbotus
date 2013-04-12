@@ -14,7 +14,7 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.androbotus.client.contract;
+package com.androbotus.mq2.contract;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,13 +27,14 @@ import com.androbotus.mq2.contract.Message;
  *
  */
 public class AttitudeMessage implements Message {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 4383158892079168456L;
+	
 	private Map<String, Float> parameterMap = new HashMap<String, Float>();
 	
 	public Map<String, Float> getParameterMap() {
 		return parameterMap;
-	}
-	
-	public static enum Parameters {
-		MOTOR, SERVO
 	}
 }

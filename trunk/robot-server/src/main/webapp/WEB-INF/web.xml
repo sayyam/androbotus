@@ -8,14 +8,14 @@
 	    <url-pattern>/scripts/*</url-pattern>
 	</servlet-mapping>
 
-	<servlet>
+	<!-- servlet>
 		<servlet-name>main</servlet-name>
 		<jsp-file>/main.jsp</jsp-file>
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>main</servlet-name>
 		<url-pattern>/</url-pattern>
-	</servlet-mapping>
+	</servlet-mapping-->
 
 	<servlet>
 		<servlet-name>controller</servlet-name>

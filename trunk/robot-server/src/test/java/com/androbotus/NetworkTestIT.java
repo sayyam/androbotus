@@ -12,7 +12,6 @@ import org.junit.Test;
 import com.androbotus.contract.Topics;
 import com.androbotus.mq2.contract.CameraMessage;
 import com.androbotus.mq2.contract.ControlMessage;
-import com.androbotus.mq2.contract.ControlMessage.ControlNames;
 import com.androbotus.mq2.contract.SensorMessage;
 import com.androbotus.mq2.contract.SocketMessage;
 import com.androbotus.mq2.core.Connection;
@@ -20,7 +19,6 @@ import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.core.MessageHandler;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPLocalConnection;
-import com.androbotus.mq2.core.impl.TCPRemoteConnection;
 import com.androbotus.mq2.core.impl.UDPMessageHandlerImpl;
 import com.androbotus.mq2.log.impl.SimpleLogger;
 
@@ -101,15 +99,20 @@ public class NetworkTestIT {
 		int cnt = 0;
 		MessageBroker broker = new RemoteMessageBrokerImpl(connection, new SimpleLogger());
 		broker.start();
+		SensorMessage oldSm = null;
 		try {
-			while (cnt < 1000) {
+			while (cnt < 10000000) {
 				System.out.println("Waiting for packet");
 				SensorMessage sm = (SensorMessage)broker.pullMessage(Topics.SENSOR.name());
 				if (sm == null){
+					Thread.sleep(1000);
+				}
+				if (sm != null && sm != oldSm){
+					System.out.println(sm.getSensorName() + ": " + sm.getValueMap().toString());
+					oldSm = sm;
+				} else {
 					Thread.sleep(100);
 				}
-				if (sm != null)
-					System.out.println(sm.getSensorName() + ": " + sm.getValueMap().toString());
 				cnt++;
 			}
 		} finally {
@@ -130,7 +133,7 @@ public class NetworkTestIT {
 			float v = 1f;
 			while (cnt < 1000) {
 				ControlMessage cm = new ControlMessage();
-				cm.setControlName(ControlNames.ESC);
+				cm.setControlName("ESC");
 				cm.setValue(v++);
 				broker.pushMessageRemote(Topics.CONTROL.name(), cm);
 				Thread.sleep(1000);

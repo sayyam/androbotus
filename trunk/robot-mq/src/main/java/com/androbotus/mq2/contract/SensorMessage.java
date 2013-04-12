@@ -29,13 +29,13 @@ public class SensorMessage implements Message {
 	 * 
 	 */
 	private static final long serialVersionUID = -8069928556245739932L;
-	private Map<String, Integer> valueMap;
+	private Map<String, Object> valueMap;
 	private String sensorName;
 	
-	public Map<String, Integer> getValueMap() {
+	public Map<String, Object> getValueMap() {
 		return valueMap;
 	}
-	public void setValueMap(Map<String, Integer> valueMap) {
+	public void setValueMap(Map<String, Object> valueMap) {
 		this.valueMap = valueMap;
 	}
 	public String getSensorName() {

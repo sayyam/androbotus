@@ -1,4 +1,4 @@
-/**
+/*
  *  This file is part of Androbotus project.
  *
  *  Androbotus is free software: you can redistribute it and/or modify
@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.app.Activity;
 import android.content.Context;
@@ -31,6 +33,8 @@ import android.content.res.Configuration;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.SurfaceView;
@@ -40,14 +44,15 @@ import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.androbotus.client.contract.AttitudeMessage;
-import com.androbotus.client.contract.AttitudeMessage.Parameters;
+import com.androbotus.client.contract.LocalAttitudeParameters;
 import com.androbotus.client.contract.LocalTopics;
+import com.androbotus.client.contract.LoggerMessage;
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.robot.impl.car.RoboticCarImpl;
 import com.androbotus.client.robot.modules.SensorModule.Sensors;
 import com.androbotus.client.streaming.StreamingProcess;
 import com.androbotus.client.streaming.impl.CameraProcessImpl;
+import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
@@ -56,6 +61,7 @@ import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.core.TopicListener;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPRemoteConnection;
+import com.androbotus.mq2.log.Logger;
 
 public class MainActivity extends Activity implements TopicListener{
 
@@ -84,37 +90,32 @@ public class MainActivity extends Activity implements TopicListener{
 	private List<String> consoleLines = new LinkedList<String>();
 	
 	//local cache for displayed values
-	private Map<String, Integer> cache = new HashMap<String, Integer>();
+	private Map<String, Object> cache = new HashMap<String, Object>();
+	
+	//these are used for car
 	private float servo = 50f;
-	private float motor = 50f;
+	private float motor = 0f;
+	
+	private float fl = 0f;
+	private float fr = 0f;
+	private float rl = 0f;
+	private float rr =  0f;
+	private float thrust = 0f;
+	private float roll = 50f;
 	
 	private long lastLoaded = System.currentTimeMillis();
 	private PowerManager.WakeLock wakeLock;
 	
+	private TextView accelOutput;
+	private TextView gyroOutput;
+	private TextView gravityOutput;
+	private TextView rvectorOutput;
 	
+	private Logger logger;
+	private RunningConsoleLogger runningLogger;
 	
 	public MainActivity() {
-	}
-	
-	
-	/*
-	private void runTimer(Long startDelay){
-		if (timer != null)
-			return;
-        timer = new Timer("SensorTimer");
-        timer.schedule(new TimerTask() {
-    		@Override
-    		public void run() {
-    			runOnUiThread(new Runnable() {
-					@Override
-					public void run() {
-		    			reloadData();
-					}
-				});
-    		}
-    	}, startDelay, REFRESH_RATE);
-	}*/
-	
+	}	
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -124,9 +125,14 @@ public class MainActivity extends Activity implements TopicListener{
         console = (TextView) findViewById(R.id.console);
         
         view = new SurfaceView(this);
+        //init console logger that will receive console message
+        runningLogger = new RunningConsoleLogger();
+        runningLogger.start();
+        
         //init modules
         SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        robot = new RoboticCarImpl(sensorManager);
+        //this.logger = new ConsoleLogger();
+        robot = new RoboticCarImpl(sensorManager, runningLogger);
         
         //sensorModule = new SensorModule(sensorManager);        
         //escModule = new EscModuleImpl();
@@ -135,6 +141,22 @@ public class MainActivity extends Activity implements TopicListener{
         
         final EditText serverAddressField = (EditText) findViewById(R.id.ipAddress);
         serverAddressField.setText(ipAddress);
+        serverAddressField.addTextChangedListener(new TextWatcher() {
+			@Override
+			public void onTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {
+				//do nothing
+			}
+			
+			@Override
+			public void beforeTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {
+				//do nothing
+			}
+			
+			@Override
+			public void afterTextChanged(Editable editable) {
+				setIpAddress();
+			}
+		});
         
         //hook start button
         final Button startBtn = (Button) findViewById(R.id.start_btn);
@@ -160,6 +182,11 @@ public class MainActivity extends Activity implements TopicListener{
         //set the initial values for the seek bars
         initProgressBar((SeekBar)findViewById(R.id.seekBar2), (int)motor);
         initProgressBar((SeekBar)findViewById(R.id.seekBar1), (int)servo);
+        
+        accelOutput = (TextView) findViewById(R.id.accelOutput);
+        gyroOutput = (TextView) findViewById(R.id.gyroOutput);
+        gravityOutput = (TextView) findViewById(R.id.gravityOutput);
+        rvectorOutput = (TextView) findViewById(R.id.rvectorOutput);
     }
     
     private void initProgressBar(SeekBar sb, int defaultV){
@@ -192,13 +219,14 @@ public class MainActivity extends Activity implements TopicListener{
     		InetAddress serverAddress = InetAddress.getByName(ipAddress);
     		connection = new TCPRemoteConnection(brokerPort, serverAddress);	
     		connection.open();
-    		messageBroker = new RemoteMessageBrokerImpl(connection, new AndroidLogger("Message Broker"));
+    		messageBroker = new RemoteMessageBrokerImpl(connection, new AndroidLogger("Message Broker"));;
+    				//new MessageBrokerImpl(new AndroidLogger("Message Broker"));new RemoteMessageBrokerImpl(connection, new AndroidLogger("Message Broker"));
     		messageBroker.start();
     		writeToConsole("Message broker connected...");
     	} catch (UnknownHostException e){
     		Log.e(TAG, "Can't locate server for ip: " + ipAddress, e);
     		writeToConsole("Can't locate server for ip: " + ipAddress);
-    		//return;
+    		return;
     	} catch (Exception e){
     		//use local version of the broker
     		Log.e(TAG, "Can't start broker", e);
@@ -212,7 +240,7 @@ public class MainActivity extends Activity implements TopicListener{
     		try {
     			SocketAddress serverAddress = new InetSocketAddress(InetAddress.getByName(ipAddress), videoPort);
     			cameraProcess = new CameraProcessImpl(serverAddress, view);
-    			cameraProcess.start();
+    			//cameraProcess.start();
     			Log.d(TAG, "Camera started...");
     		} catch (UnknownHostException e){
     			Log.e(TAG, "Can't start video process:", e);
@@ -225,8 +253,13 @@ public class MainActivity extends Activity implements TopicListener{
     	robot.start();
     	    	
     	//TODO: register method is deprecated, need to refactor the code to use special module instead
-    	messageBroker.register(Topics.SENSOR.name(), this);
+    	messageBroker.register(LocalTopics.ACCELERATION.name(), this);
+    	messageBroker.register(LocalTopics.GRAVITY.name(), this);
+    	messageBroker.register(LocalTopics.ROTATION_VECTOR.name(), this);
+    	messageBroker.register(LocalTopics.GYRO.name(), this);
+    	messageBroker.register(LocalTopics.ORIENTATION.name(), this);
     	messageBroker.register(LocalTopics.ATTITUDE.name(), this);
+    	//messageBroker.register(LocalTopics.LOGGER.name(), this);
     	started = true;
     	 
     	//lock the screen
@@ -307,9 +340,12 @@ public class MainActivity extends Activity implements TopicListener{
             	SeekBar servoBar = (SeekBar)findViewById(R.id.seekBar2);
             	pushBarValue(servoBar, LocalTopics.SERVO, servo);
             	break;
+            case R.id.ipAddress:
+            	setIpAddress();
+            	break;
         }
     }
-    
+
     /**
      * Push new bar value to a corresponding module
      */
@@ -334,7 +370,26 @@ public class MainActivity extends Activity implements TopicListener{
     private void setIpAddress(){
     	EditText editText = (EditText) findViewById(R.id.ipAddress);
     	this.ipAddress = editText.getText().toString();
-    	reloadData();
+    	//reloadData();
+    }
+    
+    private String formatFloat(float value, boolean highPrecision){
+    	String format = highPrecision ? "%.2f" : "%.1f";
+    	if (value < 0){
+    		return String.format("-" + format, value * (-1));	
+    	} else {
+    		return String.format("+" + format, value);
+    	}
+    	
+    }
+    
+    private String prepareSensorOutput(float x, float y, float z, boolean highPrecision){
+    	String ix = formatFloat(x, highPrecision); //leave only 2 digits after dot
+    	String iy = formatFloat(y, highPrecision); //leave only 2 digits after dot
+    	String iz = formatFloat(z, highPrecision); //leave only 2 digits after dot
+    	
+    	String s = String.format("X:%s  Y:%s  Z:%s", ix, iy, iz);
+    	return s;
     }
     
     @Override
@@ -343,33 +398,53 @@ public class MainActivity extends Activity implements TopicListener{
     		SensorMessage sm = (SensorMessage)message;
         	if (sm.getSensorName().equals(Sensors.ACCELERATION.name())){
         		//Log.e(TAG, "AccelX:" + sm.getValueMap().get("X").toString());
-        		cache.put(FieldNames.Accel_X.name(), sm.getValueMap().get("X"));
-        		cache.put(FieldNames.Accel_Y.name(), sm.getValueMap().get("Y"));
-        		cache.put(FieldNames.Accel_Z.name(), sm.getValueMap().get("Z"));
-        	} else if (sm.getSensorName().equals(Sensors.ORIENTATION.name())) {
-        		//Log.e(TAG, "AccelY:" + sm.getValueMap().get("X").toString());
-        		cache.put(FieldNames.Orient_X.name(), sm.getValueMap().get("X"));
-        		cache.put(FieldNames.Orient_Y.name(), sm.getValueMap().get("Y"));
-        		cache.put(FieldNames.Orient_Z.name(), sm.getValueMap().get("Z"));
-        	}	
+        		//cache.put(FieldNames.Accel_X.name(), (Float)sm.getValueMap().get("X"));
+        		//cache.put(FieldNames.Accel_Y.name(), (Float)sm.getValueMap().get("Y"));
+        		//cache.put(FieldNames.Accel_Z.name(), (Float)sm.getValueMap().get("Z"));
+        		accelOutput.setText(prepareSensorOutput((Float)sm.getValueMap().get("X"), (Float)sm.getValueMap().get("Y"), (Float)sm.getValueMap().get("Z"), false));
+        	} else if (sm.getSensorName().equals(Sensors.GYRO.name())) {
+        		gyroOutput.setText(prepareSensorOutput((Float)sm.getValueMap().get("X"), (Float)sm.getValueMap().get("Y"), (Float)sm.getValueMap().get("Z"), true));
+        	} else if (sm.getSensorName().equals(Sensors.GRAVITY.name())) {
+        		gravityOutput.setText(prepareSensorOutput((Float)sm.getValueMap().get("X"), (Float)sm.getValueMap().get("Y"), (Float)sm.getValueMap().get("Z"), true));
+        	} else if (sm.getSensorName().equals(Sensors.ROTATION_VECTOR.name())) {
+        		rvectorOutput.setText(prepareSensorOutput((Float)sm.getValueMap().get("X"), (Float)sm.getValueMap().get("Y"), (Float)sm.getValueMap().get("Z"), true));
+        	}		
+		
     	} else if (message instanceof AttitudeMessage){
     		AttitudeMessage am = (AttitudeMessage)message;
-    		if (am.getParameterMap().get(Parameters.MOTOR.name()) != null){
-    			motor = am.getParameterMap().get(Parameters.MOTOR.name());
+    		if (am.getParameterMap().get(LocalAttitudeParameters.MOTOR.name()) != null){
+    			motor = am.getParameterMap().get(LocalAttitudeParameters.MOTOR.name());
     			
     	    	SeekBar sb = (SeekBar)findViewById(R.id.seekBar1);
     	    	//int current = sb.getProgress();
     	    	//int newV = Float.valueOf(motor).intValue();
     	    	sb.setProgress((int)motor);
     		}
-    		if (am.getParameterMap().get(Parameters.SERVO.name()) != null){
-    			servo = am.getParameterMap().get(Parameters.SERVO.name());
+    		if (am.getParameterMap().get(LocalAttitudeParameters.SERVO.name()) != null){
+    			servo = am.getParameterMap().get(LocalAttitudeParameters.SERVO.name());
 
     			SeekBar sb = (SeekBar)findViewById(R.id.seekBar2);
     	    	//int current = sb.getProgress();
     	    	//int newV = Float.valueOf(servo).intValue();
     	    	sb.setProgress((int)servo);
     		}
+    		if (am.getParameterMap().get(LocalAttitudeParameters.THRUST.name()) != null){
+    			thrust = am.getParameterMap().get(LocalAttitudeParameters.THRUST.name());
+    			
+    	    	SeekBar sb = (SeekBar)findViewById(R.id.seekBar1);
+    	    	//int current = sb.getProgress();
+    	    	//int newV = Float.valueOf(motor).intValue();
+    	    	sb.setProgress((int)thrust);
+    		}
+    		if (am.getParameterMap().get(LocalAttitudeParameters.ROLL.name()) != null){
+    			servo = am.getParameterMap().get(LocalAttitudeParameters.ROLL.name());
+
+    			SeekBar sb = (SeekBar)findViewById(R.id.seekBar2);
+    	    	//int current = sb.getProgress();
+    	    	//int newV = Float.valueOf(servo).intValue();
+    	    	sb.setProgress((int)roll);
+    		}
+
     	} else {
     		Log.e(TAG, "Unacceptable message type");
     		return;
@@ -385,12 +460,12 @@ public class MainActivity extends Activity implements TopicListener{
     	long time  = System.currentTimeMillis() - lastLoaded;
     	lastLoaded = time;
     		
-    	Integer orientX = cache.get(FieldNames.Orient_X.name());
-    	Integer orientY = cache.get(FieldNames.Orient_Y.name());
-    	Integer orientZ = cache.get(FieldNames.Orient_Z.name());
-    	Integer accelX = cache.get(FieldNames.Accel_X.name());
-    	Integer accelY = cache.get(FieldNames.Accel_Y.name());
-    	Integer accelZ = cache.get(FieldNames.Accel_Z.name());
+    	Float orientX = (Float)cache.get(FieldNames.Orient_X.name());
+    	Float orientY = (Float)cache.get(FieldNames.Orient_Y.name());
+    	Float orientZ = (Float)cache.get(FieldNames.Orient_Z.name());
+    	Float accelX = (Float)cache.get(FieldNames.Accel_X.name());
+    	Float accelY = (Float)cache.get(FieldNames.Accel_Y.name());
+    	Float accelZ = (Float)cache.get(FieldNames.Accel_Z.name());
     	
     	//if it was recently redreshed just return
     	if (time < REFRESH_RATE)
@@ -416,6 +491,12 @@ public class MainActivity extends Activity implements TopicListener{
     public void onConfigurationChanged(Configuration newConfig) {
     	//super.onConfigurationChanged(newConfig);
     	//Actually do nothing since we don't want to react on screen rotation
+    }
+    
+    @Override
+    protected void onDestroy() {
+    	super.onDestroy();
+    	runningLogger.stop();
     }
     
     @Override
@@ -460,6 +541,90 @@ public class MainActivity extends Activity implements TopicListener{
     private enum FieldNames {
     	Accel_X, Accel_Y, Accel_Z, 
     	Orient_X, Orient_Y, Orient_Z;
+    }
+    
+    /**
+     * The logger that writes to application console
+     * @author maximlukichev
+     *
+     */
+    public class ConsoleLogger implements Logger {
+    	@Override
+    	public void log(LogType type, String message) {
+    		writeToConsole(buildString(type, message, null));
+    	}
+    	
+    	@Override
+    	public void log(LogType type, String message, Throwable t) {	
+    		writeToConsole(buildString(type, message, t));
+    	}
+    	
+    	private String buildString(LogType type, String message, Throwable t){
+    		String prefix = "INFO";
+    		if (type == LogType.DEBUG){
+    			prefix = "DEBUG";
+    		} else if (type == LogType.ERROR){
+    			prefix = "ERROR";
+    		}
+    		
+    		String body = message;
+    		String postfix = "";
+    		if (t != null){
+    			postfix = t.getMessage();
+    		}
+    		
+    		return String.format("%s: %s: %s", prefix, body, postfix);
+    	}
+    	
+    }
+    /**
+     * A console logger that uses UI thread to write the messages to console
+     * @author maximlukichev
+     *
+     */
+    public class RunningConsoleLogger implements Logger {
+    	private ConsoleLogger logger = new ConsoleLogger();
+    	private LoggerMessage lm;
+    	private Timer timer;
+    	    	
+    	@Override
+    	public void log(LogType type, String message) {
+    		this.lm = new LoggerMessage(type, message);
+    		
+    	}
+    	
+    	@Override
+    	public void log(LogType type, String message, Throwable cause) {
+    		this.lm = new LoggerMessage(type, message, cause);
+    	}
+    	
+    	public void stop(){
+    		if (timer != null){
+    			timer.cancel();
+    		}	
+    	}
+    	
+    	public void start() {
+    		timer = new Timer("SensorTimer");
+            timer.schedule(new TimerTask() {
+        		@Override
+        		public void run() {
+        			runOnUiThread(new Runnable() {
+    					@Override
+    					public void run() {
+    						if (lm == null)
+    							return;
+    						if (lm.getCause() != null){
+    	    					logger.log(lm.getType(), lm.getMessage(), lm.getCause());
+    	    				} else {
+    	    					logger.log(lm.getType(), lm.getMessage());
+    	    				}
+    						lm = null;
+    					}
+    				});
+        		}
+        	}, 1000 , REFRESH_RATE);
+        }
     }
     
 }

@@ -22,5 +22,5 @@ package com.androbotus.client.contract;
  *
  */
 public enum Topics {
-	SENSOR, CONTROL;
+	SENSOR, CONTROL, ATTITUDE;
 }
