@@ -34,8 +34,8 @@ import com.androbotus.mq2.log.Logger;
  */
 public class MessageBrokerImpl implements MessageBroker {
 	
-	private Map<String, Topic> topics = new HashMap<String, Topic>();
-	private Map<Topic, List<TopicListener>> listeners = new HashMap<Topic, List<TopicListener>>();
+	protected Map<String, Topic> topics = new HashMap<String, Topic>();
+	protected Map<Topic, List<TopicListener>> listeners = new HashMap<Topic, List<TopicListener>>();
 	private boolean started = false;
 	private Logger logger;
 	
@@ -56,12 +56,12 @@ public class MessageBrokerImpl implements MessageBroker {
 		topics.remove(topicName);
 	}
 	
-	
+	/*
 	public Message pullMessage(String topicName) throws Exception {
 		confirmRunning();
 		Topic t = getTopic(topicName);
 		return t.getTopMessage();
-	}
+	}*/
 	
 	
 	public void pushMessage(String topicName, Message message) throws Exception {

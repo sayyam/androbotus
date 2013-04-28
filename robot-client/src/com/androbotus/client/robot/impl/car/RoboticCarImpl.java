@@ -49,7 +49,7 @@ public class RoboticCarImpl extends AbstractRobot{
 	private SensorManager sensorManager; 
 	
 	public RoboticCarImpl (SensorManager sensorManager, Logger logger) {
-		super();
+		super(logger);
 		ioio = IOIOFactory.create();
 		this.sensorManager = sensorManager;
 		this.logger = logger;
@@ -63,7 +63,7 @@ public class RoboticCarImpl extends AbstractRobot{
 		
 		modules.add(new ModuleEntry(this.servo, new String[]{LocalTopics.SERVO.name()}));
 		modules.add(new ModuleEntry(this.motor, new String[]{LocalTopics.ESC.name()}));
-		modules.add(new ModuleEntry(new SensorModule(sensorManager, 100), new String[]{Topics.SENSOR.name()}));
+		modules.add(new ModuleEntry(new SensorModule(sensorManager, 100, logger), new String[]{Topics.SENSOR.name()}));
 		
 		return modules;
 	}

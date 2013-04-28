@@ -19,6 +19,7 @@ package com.androbotus.client.robot.modules;
 import ioio.lib.api.DigitalOutput;
 import ioio.lib.api.IOIO;
 import ioio.lib.api.PwmOutput;
+import ioio.lib.api.exception.ConnectionLostException;
 
 import java.util.Map;
 
@@ -28,7 +29,7 @@ import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
-import com.androbotus.mq2.module.AbstractModule;
+import com.androbotus.mq2.module.AsyncModule;
 
 /**
  * This module is responsible for controlling flying platform with 4 motors (aka. quadcopter).
@@ -37,7 +38,7 @@ import com.androbotus.mq2.module.AbstractModule;
  * @author maximlukichev
  * 
  */
-public class QuadPwmModuleImpl extends AbstractModule {
+public class QuadPwmModuleImpl extends AsyncModule {
 	private final static String TAG = "MultiPwmModule";
 	private final static int RESOLUTION = 10;	
 	private final static int MINVALUE = 1000;
@@ -67,12 +68,11 @@ public class QuadPwmModuleImpl extends AbstractModule {
 	private int[] pins;
 	
 	private int startValue;
-	private Logger logger;
 	
-	protected int roll = 0;
-	protected int pitch = 0;
-	protected int yaw = 0;
-	protected int thrust = 0;
+	protected float roll = 0;
+	protected float pitch = 0;
+	protected float yaw = 0;
+	protected float thrust = 0;
 	
 	protected float sensorRoll = 0;
 	protected float sensorPitch = 0;
@@ -109,15 +109,15 @@ public class QuadPwmModuleImpl extends AbstractModule {
 	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
 	 */
 	public QuadPwmModuleImpl(IOIO ioio, int[] pins, int startValue, Logger logger, boolean connectIOIO) {
+		super(logger);
 		this.ioio = ioio;
 		if (pins.length != 4)
 			throw new RuntimeException("Must specify 4 pin ids");
 		this.pins = pins;
-		
+		pwmArray = new PwmOutput[pins.length];
 		if (!(startValue <= 100 && startValue >= 0))
 			throw new RuntimeException("Start value must be within 0 and 100");
 		this.startValue = startValue;
-		this.logger = logger;
 		this.connectIOIO = connectIOIO;
 		this.t = new Thread(new Looper());
 	}
@@ -146,10 +146,6 @@ public class QuadPwmModuleImpl extends AbstractModule {
 		startYaw = sensorYaw;
 	}
 	
-	protected Logger getLogger(){
-		return logger;
-	}
-	
 	/*
 	 * Logs the message by sending it to a logger topic. It should not be used for logging anything while starting and stopping the module 
 	 * @param type
@@ -174,7 +170,7 @@ public class QuadPwmModuleImpl extends AbstractModule {
 		}
 	}*/
 	
-	private int increment(int current, int inc, int min, int max, boolean isRing){
+	private float increment(float current, float inc, float min, float max, boolean isRing){
 		if (!isRing){
 			return Math.max(Math.min(current + inc, max), min);
 		} else {
@@ -190,9 +186,8 @@ public class QuadPwmModuleImpl extends AbstractModule {
 			return current + inc;
 		}
 	}
-	
 	@Override
-	public void processMessage(Message message) {
+	protected void processMessage(Message message) {
 		if (!isStarted())
 			return;
 		
@@ -200,25 +195,32 @@ public class QuadPwmModuleImpl extends AbstractModule {
 			//Control names: ROLL, PITCH, YAW, THRUST
 			ControlMessage cm = (ControlMessage)message;
 			String controlName = cm.getControlName();
-			float value = cm.getValue();
+			//float value = cm.getValue();
 		
-			getLogger().log(LogType.DEBUG, String.format("Message received: %s -> %s", cm.getControlName(), cm.getValue()));
 			if (controlName.equals("ROLL")){
 				incRoll((int)cm.getValue());
+				getLogger().log(LogType.DEBUG, String.format("New ROLL: %s", roll));
 			} else if (controlName.equals("PITCH")) { 
 				incPitch((int)cm.getValue());
+				getLogger().log(LogType.DEBUG, String.format("New PITCH: %s", pitch));
 			} else if (controlName.equals("YAW")){
 				incYaw((int)cm.getValue());
+				getLogger().log(LogType.DEBUG, String.format("New YAW: %s", yaw));
 			} else if (controlName.equals("THRUST")){
 				incThrust((int)cm.getValue());
+				getLogger().log(LogType.DEBUG, String.format("New THRUST: %s", thrust));
 			} else if (controlName.equals("PPARAM")) {
 				setpParam(cm.getValue());
+				getLogger().log(LogType.DEBUG, String.format("New PPARAM: %s", pParam));
 			} else if (controlName.equals("IPARAM")) {
 				setiParam(cm.getValue());
+				getLogger().log(LogType.DEBUG, String.format("New IPARAM: %s", iParam));
 			} else if (controlName.equals("DPARAM")) {
 				setdParam(cm.getValue());
+				getLogger().log(LogType.DEBUG, String.format("New DPARAM: %s", dParam));
 			} else if (controlName.equals("IMAX")) {
 				iMax = cm.getValue();
+				getLogger().log(LogType.DEBUG, String.format("New IMAX: %s", iMax));
 			}  
 		} else if (message instanceof SensorMessage){
 			//receive new sensor data
@@ -226,7 +228,7 @@ public class QuadPwmModuleImpl extends AbstractModule {
 			if (Sensors.ROTATION_VECTOR.name().equals(sm.getSensorName())){
 				Map<String, Object> values = sm.getValueMap();
 				//do realign vectors
-				sensorRoll = (Float)values.get("X") - startRoll;
+				sensorRoll = (Float)values.get("X")- startRoll;
 				sensorPitch = (Float)values.get("Y") - startPitch;
 				sensorYaw = (Float)values.get("Z") - startYaw;
 			}
@@ -249,6 +251,7 @@ public class QuadPwmModuleImpl extends AbstractModule {
 					pwmArray[i] = ioio.openPwmOutput(new DigitalOutput.Spec(pins[i], DigitalOutput.Spec.Mode.OPEN_DRAIN), 50);
 					pwmArray[i].setPulseWidth(1000);
 					getLogger().log(LogType.DEBUG, String.format("PWM on PIN %s initialized", pins[i]));
+					Thread.sleep(100);//give it some time to complete initialization
 				}
 			}
 			started = true;
@@ -261,7 +264,7 @@ public class QuadPwmModuleImpl extends AbstractModule {
 			t.start();
 			//start the new thread
 		} catch (Exception e){
-			getLogger().log(LogType.ERROR, "Can't start pwm", e);
+			getLogger().log(LogType.ERROR, "Can't start pwm" , e);
 		}
 	}
 	
@@ -280,15 +283,15 @@ public class QuadPwmModuleImpl extends AbstractModule {
 		super.stop();
 	};
 	
-	public void incRoll(int rollInc){
+	public void incRoll(float rollInc){
 		this.roll = increment(this.roll, rollInc, ROLL_MIN, ROLL_MAX, false);
 	}
 
-	public void incPitch(int pitchInc){
+	public void incPitch(float pitchInc){
 		this.pitch = increment(this.pitch, pitchInc, PITCH_MIN, PITCH_MAX, false);
 	}
 
-	public void incYaw(int yawInc){
+	public void incYaw(float yawInc){
 		this.yaw = increment(this.yaw, yawInc, YAW_MIN, YAW_MAX, true);
 	}
 	
@@ -356,7 +359,7 @@ public class QuadPwmModuleImpl extends AbstractModule {
 	 * @return
 	 */
 	private float normalize(float value, int min, int max){
-		return 100*(value - min)/(max-min);
+		return 100f*(value - min)/(float)(max-min);
 	}
 	
 	/**
@@ -364,7 +367,7 @@ public class QuadPwmModuleImpl extends AbstractModule {
 	 * @param idx the index of the motor
 	 * @return the new thrust value for the motor
 	 */
-	private float calculateNewThrust(int idx) {
+	private float calculateNewThrust(int idx, float thrust) {
 		float res = thrust;
 		
 		
@@ -376,7 +379,7 @@ public class QuadPwmModuleImpl extends AbstractModule {
 			//increase for increased pitch
 			res += pParam * proportional[1] + iParam* integral[1] + dParam*differential[1];
 			//increase for increased yaw
-			res += pParam * proportional[2] + iParam* integral[2] + dParam*differential[2];
+			//res += pParam * proportional[2] + iParam* integral[2] + dParam*differential[2];
 			
 		} else if (idx == 1){
 			//front right motor
@@ -386,7 +389,7 @@ public class QuadPwmModuleImpl extends AbstractModule {
 			//increase for increased pitch
 			res += pParam * proportional[1] + iParam* integral[1] + dParam*differential[1];
 			//decrease for increased yaw
-			res -= pParam * proportional[2] + iParam* integral[1] + dParam*differential[2];
+			//res -= pParam * proportional[2] + iParam* integral[1] + dParam*differential[2];
 
 		} else if (idx == 2) {
 			//rear left motor
@@ -396,7 +399,7 @@ public class QuadPwmModuleImpl extends AbstractModule {
 			//decrease for increased pitch
 			res -= pParam * proportional[1] + iParam* integral[1] + dParam*differential[1];
 			//decrease for increased yaw
-			res -= pParam * proportional[2] + iParam* integral[2] + dParam*differential[2];
+			//res -= pParam * proportional[2] + iParam* integral[2] + dParam*differential[2];
 
 		} else if (idx == 3) {
 			//rear right motor
@@ -406,10 +409,11 @@ public class QuadPwmModuleImpl extends AbstractModule {
 			//decrease for increased pitch
 			res -= pParam * proportional[1] + iParam* integral[1] + dParam*differential[1];
 			//increase for increased yaw
-			res += pParam * proportional[2] + iParam* integral[2] + dParam*differential[2];
+			//res += pParam * proportional[2] + iParam* integral[2] + dParam*differential[2];
 
 		}
 		
+		//normalize the result
 		return Math.min(Math.max(res, 0), 100);
 	}
 	
@@ -442,10 +446,14 @@ public class QuadPwmModuleImpl extends AbstractModule {
 						integral[2] = calculateIntegral(dRoll, integral[0], dTime);
 						
 						for (int i = 0; i < pwmArray.length; i ++) {
-							int newValue = (int) (calculateNewThrust(i)*10) + MINVALUE;
-							pwmArray[i].setPulseWidth(newValue); //to fit 1000 to 2000 microsec range
+							float newThrust = calculateNewThrust(i, thrust);
 							//remember thrust value for attitude measuring purposes
-							thrustValues[i] = newValue;
+							thrustValues[i] = newThrust;
+							if (connectIOIO){
+								int newValue = (int) (newThrust*10) + MINVALUE;
+								pwmArray[i].setPulseWidth(newValue); //to fit 1000 to 2000 microsec range
+							}	
+							
 							//getLogger().log(LogType.DEBUG, String.format("New value: pin %s = %s", pin, newValue));
 						}
 						
@@ -455,8 +463,10 @@ public class QuadPwmModuleImpl extends AbstractModule {
 							//do nothing
 						}
 					}	
+				} catch (ConnectionLostException e) {
+					getLogger().log(LogType.ERROR, "Connection to pwm has been lost", e);
 				} catch (Exception e) {
-					getLogger().log(LogType.ERROR, "Can't access pwm", e);
+					getLogger().log(LogType.ERROR, "Unknown exception in the Looper", e);
 				}
 			}
 		}

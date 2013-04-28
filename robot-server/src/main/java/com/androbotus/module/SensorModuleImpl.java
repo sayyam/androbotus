@@ -18,10 +18,15 @@ package com.androbotus.module;
 
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
+import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.module.AbstractModule;
 
 public class SensorModuleImpl extends AbstractModule {
 	private SensorMessage sm;
+	
+	public SensorModuleImpl(Logger logger) {
+		super(logger);
+	}
 	
 	@Override
 	protected void processMessage(Message message) {

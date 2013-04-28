@@ -16,15 +16,16 @@
  */
 package com.androbotus.client.robot;
 
+import java.util.Arrays;
 import java.util.List;
 
-import com.androbotus.client.AndroidLogger;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
 import com.androbotus.mq2.module.AbstractModule;
+import com.androbotus.mq2.module.AsyncModule;
 import com.androbotus.mq2.module.Module;
 
 /**
@@ -37,14 +38,15 @@ import com.androbotus.mq2.module.Module;
  */
 public abstract class AbstractRobot extends AbstractModule {
 	
-	private final Logger logger = new AndroidLogger("RoboticCar"); 
+	//private final Logger logger = new AndroidLogger("RoboticCar"); 
 
 	/**
 	 * topic to module map
 	 */
 	private List<ModuleEntry> modules;
 	
-	public AbstractRobot () {
+	public AbstractRobot (Logger logger) {
+		super(logger);
 	}
 	
 	/**
@@ -73,7 +75,7 @@ public abstract class AbstractRobot extends AbstractModule {
 	@Override
 	public void start() {
 		if (getModules() == null){
-			logger.log(LogType.ERROR, "The robot is not initialized. Can't start");
+			getLogger().log(LogType.ERROR, "The robot is not initialized. Can't start");
 		} else {
 			if (getBroker() != null){
 				for (ModuleEntry entry: getModules()){
@@ -111,9 +113,7 @@ public abstract class AbstractRobot extends AbstractModule {
 		super.subscribe(broker, topics);
 		if (getModules() != null){
 			for (ModuleEntry entry: getModules()){
-				for (String topic: entry.getTopics()){
-					entry.getModule().subscribe(broker, topic);
-				}
+				entry.getModule().subscribe(broker, entry.getTopics());
 			}
 		}
 	}
@@ -143,6 +143,12 @@ public abstract class AbstractRobot extends AbstractModule {
 		
 		public String[] getTopics() {
 			return topics;
+		}
+		
+		@Override
+		public String toString() {
+			String moduleName = module == null ? "null" : module.getClass().getSimpleName();
+			return String.format("<%s: %s>", moduleName, Arrays.toString(topics));
 		}
 	}
 }

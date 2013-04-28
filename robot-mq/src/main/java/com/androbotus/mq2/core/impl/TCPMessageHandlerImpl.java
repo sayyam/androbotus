@@ -21,11 +21,11 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.core.MessageHandler;
@@ -47,12 +47,14 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 	private BufferedReader ibr;
 	private BufferedWriter obw;
 	
-	private BufferedInputStream bis;
-	private BufferedOutputStream bos;
+	private ObjectInputStream bis;
+	private ObjectOutputStream bos;
 	private byte[] buf = new byte[BUF_LEN];
 	
-	private Object readLock = new Object();
-	private Object writeLock = new Object();
+	private ReentrantLock readLock = new ReentrantLock();
+	private ReentrantLock writeLock = new ReentrantLock();
+	
+	
 	
 	public TCPMessageHandlerImpl(Socket socket) {
 		this.socket = socket;
@@ -75,17 +77,17 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 		return obw;
 	}*/
 	
-	private BufferedOutputStream getOutputStream() throws Exception {
+	private ObjectOutputStream getOutputStream() throws Exception {
 		if (bos == null) {
-			bos = new BufferedOutputStream(socket.getOutputStream());
+			bos = new ObjectOutputStream(socket.getOutputStream());
 		}
 		
 		return bos;
 	}
 
-	private BufferedInputStream getInputStream() throws Exception {
+	private ObjectInputStream getInputStream() throws Exception {
 		if (bis == null) {
-			bis = new BufferedInputStream(socket.getInputStream());
+			bis = new ObjectInputStream(socket.getInputStream());
 		}
 		
 		return bis;
@@ -97,10 +99,43 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 		}
 
 		T message = null;
-		synchronized (readLock) {
+		readLock.lock();
+		try {
+			message = (T)getInputStream().readObject();
+		} finally {
+			readLock.unlock();
+		}
+
+		return message;
+	}
+
+	public void sendMessage(Message message) throws Exception {
+		if (socket == null){
+			throw new SocketException("Socket can not be null");
+		}
+		
+		writeLock.lock();
+		try {
+			getOutputStream().writeObject(message);
+		} finally {
+			writeLock.unlock();
+		}
+	}
+	
+	
+	
+	/*
+	public <T extends Message> T receiveMessage() throws Exception {
+		if (socket == null){
+			throw new SocketException("Socket can not be null");
+		}
+
+		T message = null;
+		readLock.lock();
+		try {
 			byte[] bSize = new byte[4];
 			BufferedInputStream input = getInputStream();
-
+			//new ObjectInputStream(getInputStream()).readObject();
 			int res = input.read(bSize, 0, 4);
 			if (res == -1)
 				throw new Exception("The socket stream is over");
@@ -118,6 +153,8 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 			ObjectInputStream ois = new ObjectInputStream(bis);
 			message = (T) ois.readObject();
 			ois.close();
+		} finally {
+			readLock.unlock();
 		}
 
 		return message;
@@ -128,7 +165,8 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 			throw new SocketException("Socket can not be null");
 		}
 		
-		synchronized (writeLock) {
+		writeLock.lock();
+		try {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			ObjectOutputStream oos = new ObjectOutputStream(bos);
 			oos.writeObject(message);
@@ -141,6 +179,15 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 			out.write(size);
 			out.write(bytes);
 			out.flush();
+		} finally {
+			writeLock.unlock();
 		}
+	}*/
+	
+	@Override
+	protected void finalize() throws Throwable {
+		getOutputStream().close();
+		getInputStream().close();
+		super.finalize();
 	}
 }

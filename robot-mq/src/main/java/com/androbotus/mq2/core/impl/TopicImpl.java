@@ -49,4 +49,9 @@ public class TopicImpl implements Topic{
 		return topMessage;
 	}
 	
+	@Override
+	public String toString() {
+		return name;
+	}
+	
 }

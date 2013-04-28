@@ -146,6 +146,7 @@
 			return	{
 	    		chart: {
 	        		type: 'gauge',
+	        		animation: false,
 	        		plotBackgroundColor: null,
 	        		plotBackgroundImage: null,
 	        		plotBorderWidth: 0,
@@ -258,17 +259,17 @@
          	  			//if success then get the fresh attitude and update corresponding chart sections
          	  			var val = 0;
          	  			if (name == 'ROLL'){
-         	  				val = json.attitudeMap.ROLL;		
-         	  			} else if (level == 'PITCH') {
-         	  				val = json.attitudeMap.PITCH;		         	  
-         	  			} else if (level == 'YAW') {
-         	  				val = json.attitudeMap.YAW;		         	  
+         	  				val = json.attitudeMap.SENSOR_ROLL;		
+         	  			} else if (name == 'PITCH') {
+         	  				val = json.attitudeMap.SENSOR_PITCH;		         	  
+         	  			} else if (name == 'YAW') {
+         	  				val = json.attitudeMap.SENSOR_YAW;		         	  
          	  			}
          	  			var point = chart.series[0].points[0]
 							point.update(val);
          		}
        	});
-       }, 500);			
+       }, 50);			
 				}
 		}	
 		
@@ -304,6 +305,7 @@
 				return {
 	    			chart: {
 	        			type: 'gauge',
+	        			animation: false,
 	        			plotBorderWidth: 1,
 	        			plotBackgroundColor: {
 	        				linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
@@ -404,6 +406,9 @@
 		function updateIndivThrust(chart, level) {
 			//request server to get new attitude data
 			setInterval(function () {
+			   var left = chart.series[0].points[0];
+	         var right = chart.series[1].points[0];
+
 				$.ajax({
 					type: "GET",
   		       url: 'http://localhost:8080/androbotus/webaccess/attitude',
@@ -415,17 +420,17 @@
          	  		var rightVal = 0;
          	  		if (level == 'FRONT'){
          	  			leftVal = json.attitudeMap.FL;
-         	     	rightVal = json.attitudeMap.FR;		
+         	     	   rightVal = json.attitudeMap.FR;		
          	  		} else if (level == 'REAR') {
          	  			leftVal = json.attitudeMap.RL;
-         	     	rightVal = json.attitudeMap.RR;		         	  
+         	     	   rightVal = json.attitudeMap.RR;		         	  
          	  		}
 						left.update(leftVal, false);
 						right.update(rightVal, false);
 						chart.redraw();      	  
          		}
        	});
-       }, 500);
+       }, 50);
     	}	
 			
 		function updateIndivThrustFake(chart) {
@@ -489,30 +494,31 @@
 			
 			//bind parameter input boxes to listen the keyboard events
 			function postParameter(code, element) {
-			    console.log("changed " + element.value);           
+			    console.log("changed " + element.val());           
 					//$(this).data("previousValue", $(this).val());
 					
-					var controlJson = createControlJson(code, element.value);
+					var controlJson = createControlJson(code, element.val());
 					//send new parameter
 					$.post('http://localhost:8080/androbotus/webaccess', 
 							controlJson,
     						function(){
-    							appendToLog('Updated param:' + code + ":" + element.value);
+    							appendToLog('Updated param:' + code + ":" + element.val());
     						}
 		    		);
 			}
 			
-			//bind param controls
-			var pparam = $("#pparam");
-			var dparam = $("#dparam");
-			var iparam = $("#iparam");
-			var imax = $("#imax");
+			$(document).ready(function() {
+				//bind param controls
+				var pparam = $("#pparam");
+				var dparam = $("#dparam");
+				var iparam = $("#iparam");
+				var imax = $("#imax");
 			
-			pparam.bind('click', function(){postParameter('PPARAM', pparam)});
-			iparam.bind('change', function(){postParameter('IPARAM', iparam)});
-			dparam.bind('change', function(){postParameter('DPARAM', dparam)});
-			imax.bind('change', function(){postParameter('IMAX', imax)});
-
+				pparam.bind('click', function(){postParameter('PPARAM', pparam);});
+				iparam.bind('click', function(){postParameter('IPARAM', iparam);});
+				dparam.bind('click', function(){postParameter('DPARAM', dparam);});
+				imax.bind('click', function(){postParameter('IMAX', imax);});
+			});
 		</script>
 		<style>
       		video {

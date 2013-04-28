@@ -47,11 +47,10 @@ import android.widget.TextView;
 import com.androbotus.client.contract.LocalAttitudeParameters;
 import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.LoggerMessage;
-import com.androbotus.client.contract.Topics;
-import com.androbotus.client.robot.impl.car.RoboticCarImpl;
+import com.androbotus.client.robot.AbstractRobot;
+import com.androbotus.client.robot.impl.quad.RoboticQuadImpl;
 import com.androbotus.client.robot.modules.SensorModule.Sensors;
 import com.androbotus.client.streaming.StreamingProcess;
-import com.androbotus.client.streaming.impl.CameraProcessImpl;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
@@ -70,19 +69,14 @@ public class MainActivity extends Activity implements TopicListener{
 	private final static Long REFRESH_RATE = 100L;
 	private final static int CONSOLE_MAX_LINES = 15;
 	
-	private String ipAddress = "192.168.0.103";
+	private String ipAddress = "192.168.0.106";
 	private int brokerPort = 9000;
 	private int videoPort = 9002;
 	
 	private Connection connection;
 	private MessageBroker messageBroker;
 	private StreamingProcess cameraProcess;
-	//this one is a special case since it needs to be paused when app is not active
-	//private SensorModule sensorModule;
-	//private ServoModuleImpl servoModule;
-	//private EscModuleImpl escModule;
-	//private Module controlModule;
-	private RoboticCarImpl robot;
+	private AbstractRobot robot;
 	
 	private SurfaceView view;
 	private boolean started = false;
@@ -96,10 +90,10 @@ public class MainActivity extends Activity implements TopicListener{
 	private float servo = 50f;
 	private float motor = 0f;
 	
-	private float fl = 0f;
-	private float fr = 0f;
-	private float rl = 0f;
-	private float rr =  0f;
+	//private float fl = 0f;
+	//private float fr = 0f;
+	//private float rl = 0f;
+	//private float rr =  0f;
 	private float thrust = 0f;
 	private float roll = 50f;
 	
@@ -111,8 +105,10 @@ public class MainActivity extends Activity implements TopicListener{
 	private TextView gravityOutput;
 	private TextView rvectorOutput;
 	
-	private Logger logger;
 	private RunningConsoleLogger runningLogger;
+	
+	private SeekBar seekBarTop;
+	private SeekBar seekBarBottom;
 	
 	public MainActivity() {
 	}	
@@ -132,13 +128,8 @@ public class MainActivity extends Activity implements TopicListener{
         //init modules
         SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         //this.logger = new ConsoleLogger();
-        robot = new RoboticCarImpl(sensorManager, runningLogger);
-        
-        //sensorModule = new SensorModule(sensorManager);        
-        //escModule = new EscModuleImpl();
-        //servoModule = new ServoModuleImpl();
-        //controlModule = new ControlModuleImpl();
-        
+        robot = new RoboticQuadImpl(sensorManager, runningLogger, true);
+                
         final EditText serverAddressField = (EditText) findViewById(R.id.ipAddress);
         serverAddressField.setText(ipAddress);
         serverAddressField.addTextChangedListener(new TextWatcher() {
@@ -180,8 +171,10 @@ public class MainActivity extends Activity implements TopicListener{
         wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, TAG);
         
         //set the initial values for the seek bars
-        initProgressBar((SeekBar)findViewById(R.id.seekBar2), (int)motor);
-        initProgressBar((SeekBar)findViewById(R.id.seekBar1), (int)servo);
+        seekBarTop = (SeekBar)findViewById(R.id.seekBar1);
+        seekBarBottom = (SeekBar)findViewById(R.id.seekBar2);
+        initProgressBar(seekBarTop, 0);
+        initProgressBar(seekBarBottom, 0);
         
         accelOutput = (TextView) findViewById(R.id.accelOutput);
         gyroOutput = (TextView) findViewById(R.id.gyroOutput);
@@ -239,7 +232,8 @@ public class MainActivity extends Activity implements TopicListener{
     	if (connection != null){
     		try {
     			SocketAddress serverAddress = new InetSocketAddress(InetAddress.getByName(ipAddress), videoPort);
-    			cameraProcess = new CameraProcessImpl(serverAddress, view);
+    			//TODO: change camera process with the CameraModule
+    			//cameraProcess = new CameraProcessImpl(serverAddress, view);
     			//cameraProcess.start();
     			Log.d(TAG, "Camera started...");
     		} catch (UnknownHostException e){
@@ -249,16 +243,17 @@ public class MainActivity extends Activity implements TopicListener{
     	}
     	
     	//register robot
-    	robot.subscribe(messageBroker, Topics.CONTROL.name());
+    	robot.subscribe(messageBroker, LocalTopics.DUMMY.name());
     	robot.start();
     	    	
     	//TODO: register method is deprecated, need to refactor the code to use special module instead
-    	messageBroker.register(LocalTopics.ACCELERATION.name(), this);
-    	messageBroker.register(LocalTopics.GRAVITY.name(), this);
+    	//messageBroker.register(LocalTopics.ACCELERATION.name(), this);
+    	//messageBroker.register(LocalTopics.GRAVITY.name(), this);
     	messageBroker.register(LocalTopics.ROTATION_VECTOR.name(), this);
-    	messageBroker.register(LocalTopics.GYRO.name(), this);
-    	messageBroker.register(LocalTopics.ORIENTATION.name(), this);
+    	//messageBroker.register(LocalTopics.GYRO.name(), this);
+    	//messageBroker.register(LocalTopics.ORIENTATION.name(), this);
     	messageBroker.register(LocalTopics.ATTITUDE.name(), this);
+    	
     	//messageBroker.register(LocalTopics.LOGGER.name(), this);
     	started = true;
     	 
@@ -280,7 +275,7 @@ public class MainActivity extends Activity implements TopicListener{
     	//}
     	if (messageBroker != null){
     		robot.stop();
-    		messageBroker.unregister(Topics.SENSOR.name(), this);
+    		//messageBroker.unregister(Topics.SENSOR.name(), this);
     		try {
         		messageBroker.stop();
         	} catch (Exception e){
@@ -415,36 +410,37 @@ public class MainActivity extends Activity implements TopicListener{
     		if (am.getParameterMap().get(LocalAttitudeParameters.MOTOR.name()) != null){
     			motor = am.getParameterMap().get(LocalAttitudeParameters.MOTOR.name());
     			
-    	    	SeekBar sb = (SeekBar)findViewById(R.id.seekBar1);
+    	    	//SeekBar sb = (SeekBar)findViewById(R.id.seekBar1);
     	    	//int current = sb.getProgress();
     	    	//int newV = Float.valueOf(motor).intValue();
-    	    	sb.setProgress((int)motor);
+    	    	seekBarTop.setProgress((int)motor);
     		}
     		if (am.getParameterMap().get(LocalAttitudeParameters.SERVO.name()) != null){
     			servo = am.getParameterMap().get(LocalAttitudeParameters.SERVO.name());
 
-    			SeekBar sb = (SeekBar)findViewById(R.id.seekBar2);
+    			//SeekBar sb = (SeekBar)findViewById(R.id.seekBar2);
     	    	//int current = sb.getProgress();
     	    	//int newV = Float.valueOf(servo).intValue();
-    	    	sb.setProgress((int)servo);
+    	    	seekBarBottom.setProgress((int)servo);
     		}
     		if (am.getParameterMap().get(LocalAttitudeParameters.THRUST.name()) != null){
     			thrust = am.getParameterMap().get(LocalAttitudeParameters.THRUST.name());
     			
-    	    	SeekBar sb = (SeekBar)findViewById(R.id.seekBar1);
+    	    	//SeekBar sb = (SeekBar)findViewById(R.id.seekBar1);
     	    	//int current = sb.getProgress();
     	    	//int newV = Float.valueOf(motor).intValue();
-    	    	sb.setProgress((int)thrust);
+    	    	seekBarTop.setProgress((int)thrust);
+    	    	seekBarTop.refreshDrawableState();
     		}
     		if (am.getParameterMap().get(LocalAttitudeParameters.ROLL.name()) != null){
-    			servo = am.getParameterMap().get(LocalAttitudeParameters.ROLL.name());
+    			roll = am.getParameterMap().get(LocalAttitudeParameters.ROLL.name());
 
-    			SeekBar sb = (SeekBar)findViewById(R.id.seekBar2);
+    			//SeekBar sb = (SeekBar)findViewById(R.id.seekBar2);
     	    	//int current = sb.getProgress();
     	    	//int newV = Float.valueOf(servo).intValue();
-    	    	sb.setProgress((int)roll);
+    	    	seekBarBottom.setProgress((int)roll);
+    	    	seekBarTop.refreshDrawableState();
     		}
-
     	} else {
     		Log.e(TAG, "Unacceptable message type");
     		return;

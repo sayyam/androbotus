@@ -46,7 +46,6 @@ public class PwmModuleImpl extends AbstractModule {
 	private IOIO ioio;
 	private int pin;
 	private int startValue;
-	private Logger logger;
 	
 	/**
 	 * 
@@ -55,19 +54,15 @@ public class PwmModuleImpl extends AbstractModule {
 	 * @param startValue between 0 and 100
 	 */
 	public PwmModuleImpl(IOIO ioio, int pin, int startValue, Logger logger) {
+		super(logger);
 		this.ioio = ioio;
 		this.pin  = pin;
 		if (!(startValue <= 100 && startValue >= 0))
 			throw new RuntimeException("Start value must be within 0 and 100");
 		this.value = startValue;
 		this.startValue = startValue;
-		this.logger = logger;
 	}
-	
-	protected Logger getLogger(){
-		return logger;
-	}
-	
+		
 	/*
 	 * Logs the message by sending it to a logger topic. It should not be used for logging anything while starting and stopping the module 
 	 * @param type
@@ -92,8 +87,11 @@ public class PwmModuleImpl extends AbstractModule {
 		}
 	}*/
 	
+	
+	
+	
 	@Override
-	public void processMessage(Message message) {
+	protected void processMessage(Message message) {
 		if (!isStarted())
 			return;
 		
