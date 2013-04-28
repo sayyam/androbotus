@@ -4,7 +4,7 @@
 
 	<groupId>com.androbotus</groupId>
 	<artifactId>robot-server</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<packaging>war</packaging>
 
 	<name>robot-server</name>
@@ -19,6 +19,7 @@
 	    <jackson.version>1.9.9</jackson.version>
 	    <androbotus.version>0.0.2-SNAPSHOT</androbotus.version>
 	    <xuggle.version>5.4</xuggle.version>
+	    <robot.mq.version>0.0.3-SNAPSHOT</robot.mq.version>
 	</properties>
 	
 	<repositories>
@@ -158,7 +159,7 @@
 		<dependency>
 			<groupId>com.androbotus</groupId>
 			<artifactId>robot-mq</artifactId>
-			<version>${androbotus.version}</version>
+			<version>${robot.mq.version}</version>
 			<scope>compile</scope>
 		</dependency>
 		<!-- dependency>

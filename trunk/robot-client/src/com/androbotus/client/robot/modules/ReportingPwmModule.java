@@ -32,8 +32,8 @@ public class ReportingPwmModule extends PwmModuleImpl{
 	}
 	
 	@Override
-	public void processMessage(Message message) {
-		super.processMessage(message);
+	public void receiveMessage(Message message) {
+		super.receiveMessage(message);
 		reportAttitude();
 	}
 	

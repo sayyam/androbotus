@@ -34,14 +34,14 @@ public interface MessageBroker {
 	 */
 	public void pushMessage(String topicName, Message message) throws Exception;
 	
-	/**
+	/*
 	 * Pull message from the topic. This method pulls the most recent message from the topic. If the new message was 
 	 * pushed prior to pulling the specific one, then it won't be retrieved using this mechanism. Use topic listeners instead
 	 * 
 	 * @param topicName
 	 * @return the message pulled from the topic
 	 */
-	public Message pullMessage(String topicName) throws Exception;
+	//public Message pullMessage(String topicName) throws Exception;
 	
 	/**
 	 * Register a listener to a topic

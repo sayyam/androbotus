@@ -12,8 +12,10 @@ import com.androbotus.mq2.core.MessageHandler;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPLocalConnection;
 import com.androbotus.mq2.core.impl.TCPMessageHandlerImpl;
+import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.impl.SimpleLogger;
 import com.androbotus.mq2.module.AbstractModule;
+import com.androbotus.mq2.module.AsyncModule;
 import com.androbotus.mq2.module.Module;
 import com.androbotus.robotmq.util.DummyMessage;
 
@@ -77,12 +79,7 @@ public class MessageBrokerServiceIT {
 		connection.open();
 		RemoteMessageBrokerImpl broker = new RemoteMessageBrokerImpl(connection, new SimpleLogger());
 		
-		Module consumer = new AbstractModule() {
-			@Override
-			protected void processMessage(Message message) {
-				System.out.println("Received: " + message);
-			}
-		};
+		Module consumer = new TestModule(new SimpleLogger());
 		broker.start();
 		consumer.subscribe(broker, "Topic");
 		consumer.start();
@@ -124,4 +121,15 @@ public class MessageBrokerServiceIT {
 		return new DummyMessage(num);
 	}
 	
+	
+	private class TestModule extends AsyncModule {
+		public TestModule(Logger logger) {
+			super(logger);
+		}
+		@Override
+		protected void processMessage(Message message) {
+			System.out.println("Received: " + message);
+		}
+
+	}
 }

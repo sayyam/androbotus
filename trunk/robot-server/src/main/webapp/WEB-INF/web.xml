@@ -24,7 +24,7 @@
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>controller</servlet-name>
-		<url-pattern>/webaccess</url-pattern>
+		<url-pattern>/webaccess/*</url-pattern>
 	</servlet-mapping>
 
 	<servlet>

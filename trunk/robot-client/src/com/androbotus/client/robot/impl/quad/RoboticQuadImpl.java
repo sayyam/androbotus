@@ -24,9 +24,11 @@ import java.util.List;
 
 import android.hardware.SensorManager;
 
+import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.robot.AbstractRobot;
-import com.androbotus.client.robot.modules.ReportingQuadPwmModule;
+import com.androbotus.client.robot.modules.QuadPwmModuleImpl;
+import com.androbotus.client.robot.modules.ReportingQuadPwmModuleImpl;
 import com.androbotus.client.robot.modules.SensorModule;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.log.Logger;
@@ -51,9 +53,9 @@ public class RoboticQuadImpl extends AbstractRobot{
 	 * @param logger the logger
 	 * 
 	 */
-	public RoboticQuadImpl(SensorManager sensorManager, Logger logger) {
-		this(sensorManager, logger, true);
-	}
+	//public RoboticQuadImpl(SensorManager sensorManager, Logger logger) {
+	//	this(sensorManager, logger, true);
+	//}
 	
 	/**
 	 * Creates quadcopter robot
@@ -62,7 +64,7 @@ public class RoboticQuadImpl extends AbstractRobot{
 	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
 	 */
 	public RoboticQuadImpl (SensorManager sensorManager, Logger logger, boolean connectIOIO) {
-		super();
+		super(logger);
 		ioio = IOIOFactory.create();
 		this.sensorManager = sensorManager;
 		this.logger = logger;
@@ -73,8 +75,15 @@ public class RoboticQuadImpl extends AbstractRobot{
 	protected List<ModuleEntry> defineModules(){
 		List<ModuleEntry> modules = new ArrayList<AbstractRobot.ModuleEntry>();
 		
-		modules.add(new ModuleEntry(new ReportingQuadPwmModule(ioio, new int[]{3,4,5,6},"QuadModule", 0, logger), new String[]{Topics.CONTROL.name(), Topics.SENSOR.name()}));
-		modules.add(new ModuleEntry(new SensorModule(sensorManager, 100), new String[]{Topics.SENSOR.name()}));
+		//this is the quadcopter stabilization module, responsible for yaw/pitch/roll stabilization
+		modules.add(new ModuleEntry(new ReportingQuadPwmModuleImpl(ioio, new int[]{3,4,5,6}, 0, logger, connectIOIO), 
+				new String[]{Topics.CONTROL.name(), LocalTopics.ROTATION_VECTOR.name()}));
+		
+		//we need to define sensor module
+		modules.add(new ModuleEntry(new SensorModule(sensorManager, 50, logger), new String[]{LocalTopics.DUMMY.name()}));
+
+		//we need this module to be able send messages to the server
+		//modules.add(new ModuleEntry(new RemoteMessageModuleImpl(logger), new String[]{LocalTopics.REMOTE.name()}));
 		
 		return modules;
 	}

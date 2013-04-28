@@ -13,6 +13,7 @@ import com.androbotus.mq2.core.Connection;
 import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPLocalConnection;
+import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.impl.SimpleLogger;
 import com.androbotus.mq2.module.AbstractModule;
 
@@ -48,22 +49,26 @@ public class SensorMessageIT {
 	@Test
 	public void testReceiveSensorMessage() throws Exception {
 		System.out.println("Start listeninig");
-		AbstractModule module = new AbstractModule() {
-			
-			@Override
-			protected void processMessage(Message message) {
-				if (!(message instanceof SensorMessage))
-					System.out.println("Wrong message type: " + message.getClass().getSimpleName());
-				
-				SensorMessage sm = (SensorMessage)message;
-				System.out.println(sm.getSensorName() + ": " + sm.getValueMap().toString());
-			}
-			
-		};
-		
+		AbstractModule module = new TestModule(new SimpleLogger());
 		module.subscribe(broker, Topics.SENSOR.name());
 		Thread.sleep(1000000);
 		System.out.println("Stop listeninig");
+	}
+	
+	private class TestModule extends AbstractModule {
+		public TestModule(Logger logger) {
+			super(logger);
+		}
+		
+		@Override
+		protected void processMessage(Message message) {
+			if (!(message instanceof SensorMessage))
+				System.out.println("Wrong message type: " + message.getClass().getSimpleName());
+			
+			SensorMessage sm = (SensorMessage)message;
+			System.out.println(sm.getSensorName() + ": " + sm.getValueMap().toString());
+		}
+			
 	}
 	
 }

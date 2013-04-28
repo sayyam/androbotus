@@ -31,7 +31,9 @@ import com.androbotus.client.util.sensor.AccelerationFilter;
 import com.androbotus.client.util.sensor.GyroFilter;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
-import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
+import com.androbotus.mq2.contract.SocketMessage;
+import com.androbotus.mq2.log.Logger;
+import com.androbotus.mq2.log.Logger.LogType;
 import com.androbotus.mq2.module.AbstractModule;
 
 /**
@@ -52,6 +54,8 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 	private Sensor gravity; //gravity component - i.e. gravity acceleration
 	private Sensor rotationVector; //rotation vector
 	
+	private final static float RAD_DEGREE = 57.6f;
+	
 	private int updateRate;
 	//private boolean isRunning = false;
 	
@@ -69,7 +73,8 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 	 * @param sensorManager the sensor manager
 	 * @param updateRate the time interval for sending sensor data to remote server
 	 */
-	public SensorModule(SensorManager sensorManager, int updateRate){
+	public SensorModule(SensorManager sensorManager, int updateRate, Logger logger){
+		super(logger);
 		this.sensorManager = sensorManager;
 		this.updateRate = updateRate;
 		handleStart();
@@ -134,7 +139,7 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 		
 		SensorMessage sm = new SensorMessage();
 		sm.setSensorName(Sensors.ROTATION_VECTOR.name());
-		sm.setValueMap(buildSensorValue(event.values));
+		sm.setValueMap(buildRVecotrSensorValue(event.values));
 		
 		sendSensorMessage(LocalTopics.ROTATION_VECTOR.name(), sm);
 	}
@@ -175,27 +180,40 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 		try {
 			getBroker().pushMessage(topic, sm);
 		} catch (Exception e){
-			Log.d(TAG, "Unable to push message to a topic: " + e.getMessage());
+			getLogger().log(LogType.DEBUG, String.format("%s: ", TAG,"Unable to push local message: " + e.getMessage()));
+			Log.d(TAG, "Unable to push local message: " + e.getMessage());
 		}
 	}
 	
 	private void sendRemoteSensorMessage() {
-		if (!(getBroker() instanceof RemoteMessageBrokerImpl)){
-			return;
-		}
 		
 		long diff = System.currentTimeMillis() - time;
 		try {
 			if (diff > updateRate){
-				RemoteMessageBrokerImpl broker = (RemoteMessageBrokerImpl)getBroker();
 				for (SensorMessage sm: messageMap.values()){
-					broker.pushMessageRemote(Topics.SENSOR.name(), sm);	
+					SocketMessage remoteMsg = new SocketMessage();
+					remoteMsg.setEmbeddedMessage(sm);
+					remoteMsg.setTopicName(Topics.SENSOR.name());
+					getBroker().pushMessage(LocalTopics.REMOTE.name(), remoteMsg);	
 				}
 				time = System.currentTimeMillis();
 			}
 		} catch (Exception e){
-			Log.d(TAG, "Unable to push message to a topic: " + e.getMessage());
+			getLogger().log(LogType.DEBUG, String.format("%s: ", TAG,"Unable to push remote message: " + e.getMessage()));
+			Log.d(TAG, "Unable to push remote message: " + e.getMessage());
 		}
+	}
+	
+	private Map<String, Object> buildRVecotrSensorValue(float[] values){
+		Map<String, Object> res = null;
+		
+		//always populate 3 dimension values
+		res = new HashMap<String, Object>(3);
+		res.put("X", values[0] * RAD_DEGREE);
+		res.put("Y", values[1] * RAD_DEGREE);
+		res.put("Z", values[2] * RAD_DEGREE);
+		
+    	return res;
 	}
 	
 	private Map<String, Object> buildSensorValue(float[] values){
@@ -215,6 +233,8 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
     	return res;
 	}
 	
+	
+	
 	/*
 	private int translate(Float value){
 		return (int)(value * RESOLUTION);
@@ -223,11 +243,11 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 	private void registerSensors(){
 		if (isStarted())
 			return;
-    	sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+    	//sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
     	//sensorManager.registerListener(this, orientation, SensorManager.SENSOR_DELAY_NORMAL); //orientation is deprecated in future version, so don't need it
-    	sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_GAME); //this sensor is responsible for the robot stabilty so need to get data as fast as possible
-    	sensorManager.registerListener(this, gravity, SensorManager.SENSOR_DELAY_GAME);
-    	sensorManager.registerListener(this, rotationVector, SensorManager.SENSOR_DELAY_NORMAL);
+    	//sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_NORMAL); //this sensor is responsible for the robot stabilty so need to get data as fast as possible
+    	//sensorManager.registerListener(this, gravity, SensorManager.SENSOR_DELAY_NORMAL);
+    	sensorManager.registerListener(this, rotationVector, SensorManager.SENSOR_DELAY_GAME);
 	}
 	
 	private void unregisterSensors(){
@@ -251,9 +271,10 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 
 	
 	@Override
-	public void processMessage(Message message) {
-		//Do nothing since this module only sends data, but not reacts on input
+	protected void processMessage(Message message) {
+	//Do nothing since this module only sends data, but not reacts on input
 	}
+	
 	
 	
 	

@@ -34,17 +34,17 @@ import javax.servlet.http.HttpServletResponse;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.androbotus.contract.Topics;
+import com.androbotus.infrastructure.SimpleLogger;
 import com.androbotus.module.ControlModuleImpl;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
 import com.androbotus.mq2.core.Connection;
-import com.androbotus.mq2.core.TopicListener;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPLocalConnection;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
-import com.androbotus.mq2.log.impl.SimpleLogger;
+import com.androbotus.mq2.module.AbstractModule;
 import com.androbotus.servlet.contract.Attitude;
 import com.androbotus.servlet.contract.Control;
 import com.androbotus.servlet.contract.ControlTypes;
@@ -81,59 +81,21 @@ public class ControllerServlet extends HttpServlet {
 	@Override
 	public void init() throws ServletException {
 		try {
-			// InetAddress addr = InetAddress.getLocalHost();
-			// sender = new DatagramSocket(DESTINATION_PORT, addr);
-			// receiver = new DatagramSocket(RECEIVER_PORT, addr);
 			connection = new TCPLocalConnection(DESTINATION_PORT);
 			connection.open();
-			// MessageHandler mHandler = new UDPMessageHandlerImpl(sender,
-			// receiver, false);
 			// TODO: use Log4j logger
 			messageBroker = new RemoteMessageBrokerImpl(connection, logger);
-
-			control = new ControlModuleImpl();
+			
+			control = new ControlModuleImpl(logger);
 			control.subscribe(messageBroker, Topics.CONTROL.name());
 			control.start();
-
+			
+			MessageReceiver mr = new MessageReceiver(logger);
+			mr.subscribe(messageBroker, Topics.ATTITUDE.name());
+			mr.start();
+			
 			messageBroker.start();
-			messageBroker.register(Topics.SENSOR.name(), new TopicListener() {
-				public void receiveMessage(Message message) {
-					if (message instanceof SensorMessage){
-						
-						SensorMessage sm = (SensorMessage) message;
-						Map<String, Object> smValues = sm.getValueMap();
-						if (smValues == null)
-							return;
-					
-						//	translate float sm values to a 2 digit after dot format
-						StringBuffer sb = new StringBuffer();
-						for (String key: smValues.keySet()){
-							sb.append(key);
-							sb.append("=");
-							Object value = smValues.get(key);
-						
-							if (value instanceof Float){
-								Float fv = (Float) value;
-								//keep only 2 digits after dot
-								int intv = (int)(fv * 100); 
-								fv = (float)intv/100f; 
-								sb.append(fv);
-							} else {
-								sb.append(value.toString());
-							}
-						}
-						sensorData.put(sm.getSensorName(), sb.toString());
-					} else if (message instanceof AttitudeMessage){
-						AttitudeMessage am = (AttitudeMessage)message;
-						
-						for (Map.Entry<String, Float> entry: am.getParameterMap().entrySet()){
-							attitudeMap.put(entry.getKey(), entry.getValue());	
-						}
-					} else {
-						return;
-					}
-				}
-			});
+			
 		} catch (Exception e) {
 			throw new ServletException(e);
 		}
@@ -159,7 +121,7 @@ public class ControllerServlet extends HttpServlet {
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException {
-
+		//logger.log(LogType.DEBUG, req.getRequestURL().toString());
 		String uri = req.getRequestURI();
 		Object res = null;
 		if (uri.endsWith("/sensor")){
@@ -186,7 +148,7 @@ public class ControllerServlet extends HttpServlet {
 
 		ObjectMapper om = new ObjectMapper();
 		String s = om.writeValueAsString(res);
-
+		//logger.log(LogType.DEBUG, s);
 		PrintWriter pw = resp.getWriter();
 		pw.write(s);
 		pw.flush();
@@ -271,5 +233,55 @@ public class ControllerServlet extends HttpServlet {
 		// int currentValue = accelerationModule.getAccelerationValue();
 		this.control.publishControlValue(controlName, newValueF);
 	
+	}
+	
+	private class MessageReceiver extends AbstractModule {
+		
+		public MessageReceiver(Logger logger) {
+			super(logger);
+		}
+		
+		@Override
+		protected void processMessage(Message message) {
+			//logger.log(LogType.DEBUG, "Message received: " + message.getClass().getSimpleName());
+			if (message instanceof SensorMessage){
+				
+				SensorMessage sm = (SensorMessage) message;
+				Map<String, Object> smValues = sm.getValueMap();
+				if (smValues == null)
+					return;
+			
+				//	translate float sm values to a 2 digit after dot format
+				StringBuffer sb = new StringBuffer();
+				for (String key: smValues.keySet()){
+					sb.append(key);
+					sb.append("=");
+					Object value = smValues.get(key);
+				
+					if (value instanceof Float){
+						Float fv = (Float) value;
+						//keep only 2 digits after dot
+						int intv = (int)(fv * 100); 
+						fv = (float)intv/100f; 
+						sb.append(fv);
+					} else {
+						sb.append(value.toString());
+					}
+				}
+				sensorData.put(sm.getSensorName(), sb.toString());
+			} else if (message instanceof AttitudeMessage){
+				
+				AttitudeMessage am = (AttitudeMessage)message;
+				
+				for (Map.Entry<String, Float> entry: am.getParameterMap().entrySet()){
+					attitudeMap.put(entry.getKey(), entry.getValue());	
+				}
+				
+				//TODO: this is a temp code just for debugging. To be deleted
+				//logger.log(LogType.DEBUG, "Attitude message received");
+			} else {
+				return;
+			}
+		}
 	}
 }
