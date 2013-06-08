@@ -128,7 +128,7 @@ public class MainActivity extends Activity implements TopicListener{
         //init modules
         SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         //this.logger = new ConsoleLogger();
-        robot = new RoboticQuadImpl(sensorManager, runningLogger, true);
+        robot = new RoboticQuadImpl(sensorManager, runningLogger, false);
                 
         final EditText serverAddressField = (EditText) findViewById(R.id.ipAddress);
         serverAddressField.setText(ipAddress);
@@ -248,9 +248,9 @@ public class MainActivity extends Activity implements TopicListener{
     	    	
     	//TODO: register method is deprecated, need to refactor the code to use special module instead
     	//messageBroker.register(LocalTopics.ACCELERATION.name(), this);
-    	//messageBroker.register(LocalTopics.GRAVITY.name(), this);
+    	messageBroker.register(LocalTopics.GRAVITY.name(), this);
     	messageBroker.register(LocalTopics.ROTATION_VECTOR.name(), this);
-    	//messageBroker.register(LocalTopics.GYRO.name(), this);
+    	messageBroker.register(LocalTopics.GYRO.name(), this);
     	//messageBroker.register(LocalTopics.ORIENTATION.name(), this);
     	messageBroker.register(LocalTopics.ATTITUDE.name(), this);
     	

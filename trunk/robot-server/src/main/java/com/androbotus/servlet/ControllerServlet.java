@@ -205,6 +205,14 @@ public class ControllerServlet extends HttpServlet {
 			processFloatControlValue(newValue, "IPARAM");
 		} else if (type == ControlTypes.IMAX) {
 			processFloatControlValue(newValue, "IMAX");
+		} else if (type == ControlTypes.ROLL_CORR) {
+			processFloatControlValue(newValue, "ROLL_CORR");
+		} else if (type == ControlTypes.PITCH_CORR) {
+			processFloatControlValue(newValue, "PITCH_CORR");
+		} else if (type == ControlTypes.YAW_CORR) {
+			processFloatControlValue(newValue, "YAW_CORR");
+		} else if (type == ControlTypes.RESET) {
+			processIntControlValue("0", "RESET");
 		} else {
 			throw new ServletException("Unknown control type: " + type.name());
 		}

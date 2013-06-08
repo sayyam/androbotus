@@ -80,7 +80,7 @@ public class GyroFilter {
 			gyro[1] = values[1];
 			gyro[2] = values[2];
 		}
-
+    	
     	gyro[0] = alpha * gyro[0] + (1 - alpha) * values[0];
     	gyro[1] = alpha * gyro[1] + (1 - alpha) * values[1];
     	gyro[2] = alpha * gyro[2] + (1 - alpha) * values[2];

@@ -1,11 +1,14 @@
 package com.androbotus.robotmq;
 
+import java.awt.print.Book;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.HashSet;
+import java.util.Set;
 
 import junit.framework.Assert;
 
@@ -87,24 +90,48 @@ public class MessageHandlerTest {
 		//make a connection
 		Socket sock = new Socket(InetAddress.getLocalHost().getHostName(), port);
 		
-		MessageHandler mh = new TCPMessageHandlerImpl(socket);
+		final MessageHandler mh = new TCPMessageHandlerImpl(socket);
 		
 		DummyMessage dm = new DummyMessage(1);
 		byte[] data = new byte[10000];
 		//just for fun
 		data[0] = 1;
 		dm.setData(data);
-		SocketMessage sm = new SocketMessage();
+		final SocketMessage sm = new SocketMessage();
 		sm.setTopicName("Topic");
 		sm.setEmbeddedMessage(dm);
-
+		
+		final MessageHandler mh2 = new TCPMessageHandlerImpl(sock);
+		
+		final Set<Object> flag = new HashSet<Object>();
+		//send receive the data 
+		new Thread(new Runnable() {
+			public void run() {
+				int cnt = 0;
+				for (int i = 0; i < 2; i ++){
+					SocketMessage rsm;
+					try {
+						rsm = mh2.receiveMessage();
+						cnt++;
+					} catch (Exception e) {
+						e.printStackTrace();
+						throw new RuntimeException(e);
+					}
+					Assert.assertTrue(rsm.getTopicName() != null);
+					Assert.assertTrue(rsm.getEmbeddedMessage() != null);
+				}
+				Assert.assertTrue(cnt == 2);
+				flag.add(new Boolean(true));
+			}
+		}).start();
+		
+		Thread.sleep(100);
+		
 		mh.sendMessage(sm);
-		
-		MessageHandler mh2 = new TCPMessageHandlerImpl(sock);
-		SocketMessage rsm = mh2.receiveMessage();
-		
-		Assert.assertTrue(rsm.getTopicName() != null);
-		Assert.assertTrue(rsm.getEmbeddedMessage() != null);
+		mh.sendMessage(sm);
+		while (flag.size() == 0){
+			Thread.sleep(10);	
+		}
 		
 		t.interrupt();
 		sock.close();

@@ -3,11 +3,23 @@
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<title>Androbotus - Main</title>
+		<link rel="stylesheet" href="scripts/jgauge/css/jgauge.css" type="text/css" />
+        <!--link rel="stylesheet" href="scripts/jgauge/css/page.css" type="text/css" /-->
 		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-		<script src="http://code.highcharts.com/highcharts.js"></script>
-		<script src="http://code.highcharts.com/highcharts-more.js"></script>
-		<script src="http://code.highcharts.com/modules/exporting.js"></script>
+		<script src="scripts/jqueryrotate/jQueryRotate.1.7.js"></script>
+        <script src="scripts/jgauge/js/jgauge-0.3.0.a3.js"></script>
+
 		<script type="text/javascript">
+			//vars	
+			//var attitude;
+			var rollChart;
+			var pitchChart;
+			var yawChart;
+			var flChart;
+			var frChart;
+			var rlChart;
+            var rrChart;
+
 			
 			//emulates click on the button with given id		
 			function keyBtnPressed(id){
@@ -88,6 +100,14 @@
 				} else if (code == 'IMAX') {
 					//imax parameter
 					type = 'IMAX';
+				} else if (code == 'RESET') {
+					type = 'RESET';			
+				} else if (code == 'ROLL_CORR') {
+					type = 'ROLL_CORR';			
+				} else if (code == 'PITCH_CORR') {
+					type = 'PITCH_CORR';			
+				} else if (code == 'YAW_CORR') {
+					type = 'YAW_CORR';			
 				}
 				
 				//var json = {type: "", controlValue: ""};
@@ -142,383 +162,189 @@
 			});			
 			
 		//create a speedometer-like guage to display roll and pitch angles	
-		function createRollPitchGuage(name, min, max){
-			return	{
-	    		chart: {
-	        		type: 'gauge',
-	        		animation: false,
-	        		plotBackgroundColor: null,
-	        		plotBackgroundImage: null,
-	        		plotBorderWidth: 0,
-	        		plotShadow: true
-	    		},
-	    
-	    		title: {
-	        		text: name
-	    		},
-	    
-	    		pane: {
-	        		startAngle: -150,
-	        		endAngle: 150,
-	        		background: [{
-	            		backgroundColor: {
-	                		linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-	                		stops: [
-	                    		[0, '#FFF'],
-	                    		[1, '#333']
-	                		]
-	            		},
-	            		borderWidth: 0,
-	            		outerRadius: '109%'
-	        		}, {
-	            		backgroundColor: {
-	                		linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-	                		stops: [
-	                    		[0, '#333'],
-	                    		[1, '#FFF']
-	                		]
-	            		},
-	            		borderWidth: 1,
-	            		outerRadius: '107%'
-	        		}, {
-	            		// default background
-	        		}, {
-	            		backgroundColor: '#DDD',
-	            		borderWidth: 0,
-	            		outerRadius: '105%',
-	            		innerRadius: '103%'
-	        		}]
-	    		},
-			       
-			    // the value axis
-			    yAxis: {
-	        		min: min,
-	        		max: max,
-			        
-	        		minorTickInterval: 'auto',
-	        		minorTickWidth: 1,
-	        		minorTickLength: 10,
-	        		minorTickPosition: 'inside',
-	        		minorTickColor: '#666',
-	
-			        tickPixelInterval: 30,
-	    		    tickWidth: 2,
-	        		tickPosition: 'inside',
-	        		tickLength: 10,
-	        		tickColor: '#666',
-	        		labels: {
-	            		step: 2,
-	            		rotation: 'auto'
-	        		},
-	        		title: {
-	            		text: name
-	        		},
-	        		plotBands: [{
-	            		from: min + 60,
-	            		to: max - 60 ,
-	            		color: '#55BF3B' // green
-	        		}, {
-	            		from: min + 30,
-	            		to: min + 60,
-	            		color: '#DDDF0D' // yellow
-	        		}, {
-	            		from: max - 60,
-	            		to: max - 30,
-	            		color: '#DDDF0D' // yellow
-	        		}, {
-	            		from: min,
-	            		to: min + 30,
-	            		color: '#DF5353' // red
-	        		}, {
-	            		from: max - 30,
-	            		to: max,
-	            		color: '#DF5353' // red
-	        		}]        
-	    		},
-			
-	    		series: [{
-	        		name: name,
-	        		data: [0],
-	        		tooltip: {
-	            		valueSuffix: 'degree'
-	        		}
-	    		}]
-			}
+		function createRollPitchGuage(id, name, min, max, hasRange){
+		    var g = new jGauge(); // Create a new jGauge.
+            g.id = id;
+            g.label.suffix = name; // Make the value label bytes.
+            g.ticks.count = 5;
+            g.ticks.start = min;
+            g.ticks.end = max;
+            g.needle.imagePath = 'scripts/jgauge/img/jgauge_needle_default.png';
+            g.imagePath = 'scripts/jgauge/img/jgauge_face_default.png';
+            g.range.color = 'rgba(34, 139, 34, 0.0)';
+            g.label.precision = 0; // 0 decimals (whole numbers).
+            if (hasRange){
+                g.range.color = 'rgba(34, 139, 34, 0.2)';
+            }
+            g.range.start = -160;
+            g.range.end = -20;
+
+            g.range.thickness = 36;
+            g.range.radius = 55;
+
+            return g;
 		}
 		
 		//request new roll/pitch/yaw values from the server to plot them on the guage 	
-		function updateRollPitchGuage(chart, min, max, name) {
-				if (!chart.renderer.forExport) {
-		    		setInterval(function () {
-		       	$.ajax({
-							type: "GET",
-  		       		url: 'http://localhost:8080/androbotus/webaccess/attitude',
-							contentType: 'application/json; charset=utf-8',
-					 		dataType: 'json',
-         				success: function(json){
-         	  			//if success then get the fresh attitude and update corresponding chart sections
-         	  			var val = 0;
-         	  			if (name == 'ROLL'){
-         	  				val = json.attitudeMap.SENSOR_ROLL;		
-         	  			} else if (name == 'PITCH') {
-         	  				val = json.attitudeMap.SENSOR_PITCH;		         	  
-         	  			} else if (name == 'YAW') {
-         	  				val = json.attitudeMap.SENSOR_YAW;		         	  
-         	  			}
-         	  			var point = chart.series[0].points[0]
-							point.update(val);
-         		}
-       	});
-       }, 50);			
-				}
-		}	
-		
-		function updateRollPitchGuageFake(chart, min, max) {
-				if (!chart.renderer.forExport) {
-		    		setInterval(function () {
-		        		var point = chart.series[0].points[0],
-		            		newVal,
-		            		inc = Math.round((Math.random() - 0.5) * 20);
-		        
-		        		newVal = point.y + inc;
-		        		if (newVal < min || newVal > max) {
-		            		newVal = point.y - inc;
-		        		}
-		        		
-		        		point.update(newVal);
-				        
-				    }, 500);
-				}
+		function updateGuage(guage, min, max, value) {
+            var val = 0;
+            if (value){
+                val = value;
+            }
+            if (val < min){
+                val = min;
+            }
+            if (val > max){
+                val = max;
+            }
+            guage.setValue(val);
 		}
-			
-					
-		//create roll guage
-		var roll = createRollPitchGuage('Roll', -90, 90);
-		$(function () {$('#roll').highcharts(roll, function(chart){updateRollPitchGuage(chart, -90, 90, 'ROLL');});});
-		//create pitch guage
-		var pitch = createRollPitchGuage('Pitch', -90, 90);
-		$(function () {$('#pitch').highcharts(pitch, function(chart){updateRollPitchGuage(chart, -90, 90, 'PITCH');});});
-					
-						
+
 		//create guage for engines thrust. A single guage displays thrust level for 2 engines
-		function createIndivThrust(name) {
-				return {
-	    			chart: {
-	        			type: 'gauge',
-	        			animation: false,
-	        			plotBorderWidth: 1,
-	        			plotBackgroundColor: {
-	        				linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-	        				stops: [
-	        					[0, '#FFF4C6'],
-	        					[0.3, '#FFFFFF'],
-	        					[1, '#FFF4C6']
-	        				]
-	        				},
-	        			plotBackgroundImage: null,
-	        			height: 200
-	    			},
-	
-	    			title: {text: name + ' Engines Thrust'},
-	    
-	    			pane: [{
-	        			startAngle: -45,
-	        			endAngle: 45,
-	        			background: null,
-	        			center: ['25%', '145%'],
-	        			size: 300
-	    			}, {
-	    				startAngle: -45,
-	    				endAngle: 45,
-	    				background: null,
-	        			center: ['75%', '145%'],
-	        			size: 300
-	    			}],	    		        
+		function createIndivThrust(id, name) {
+		    var g = new jGauge(); // Create a new jGauge.
+            g.id = id; // Link the new jGauge to the placeholder DIV.
+            g.imagePath = 'scripts/jgauge/img/jgauge_face_taco.png';
+            g.segmentStart = -225
+            g.segmentEnd = 45
+            g.width = 170;
+            g.height = 170;
+            g.needle.imagePath = 'scripts/jgauge/img/jgauge_needle_taco.png';
+        	g.needle.xOffset = 0;
+        	g.needle.yOffset = 0;
+            g.label.yOffset = 55;
+            g.label.color = '#fff';
+            g.label.precision = 0; // 0 decimals (whole numbers).
+        	g.label.suffix = name; // Make the value label watts.
+        	g.ticks.labelRadius = 45;
+            g.ticks.labelColor = '#0ce';
+            g.ticks.start = 0;
+            g.ticks.end = 100;
+            g.ticks.count = 11;
+            g.ticks.color = 'rgba(0, 0, 0, 0)';
+            g.range.color = 'rgba(0, 0, 0, 0)';
+
+            return g;
+		}
+
+	    var cnt = 0;
+		//this function is turned off since all the sensors should use charts as of now
+		//setInterval(function(){updateSensors()},40);
 			
-	    			yAxis: [{
-	        			min: 0,
-	        			max: 100,
-	        			minorTickPosition: 'outside',
-	        			tickPosition: 'outside',
-	        			labels: {
-	        				rotation: 'auto',
-	        				distance: 20	
-	        			},
-	        			plotBands: [{
-	        				from: 80,
-	        				to: 100,
-	        				color: '#C02316',
-	        				innerRadius: '100%',
-	        				outerRadius: '105%'
-	        			}],
-	        			pane: 0,
-	        			title: {
-	        				text: '<span style="font-size:10px">' + name + ' Left</span>',
-	        				y: -40
-	        			}
-	    			}, {
-	        			min: 0,
-	        			max: 100,
-	        			minorTickPosition: 'outside',
-	        			tickPosition: 'outside',
-	        			labels: {
-	        				rotation: 'auto',
-	        				distance: 20
-	        			},
-	        			plotBands: [{
-	        				from: 80,
-	        				to: 100,
-	        				color: '#C02316',
-	        				innerRadius: '100%',
-	        				outerRadius: '105%'
-	        			}],
-	        			pane: 1,
-	        			title: {
-	        			text: '<span style="font-size:10px">' + name + ' Right</span>',
-	        			y: -40
-	        		}
-	    		}],
-	    
-	    		plotOptions: {
-	    			gauge: {
-	    				dataLabels: {
-	    					enabled: false
-	    				},
-	    				dial: {
-	    					radius: '100%'
-	    				}
-	    			}
-	    		},
-	    	
-	
-			    series: [{
-	    		    data: [0],
-	        		yAxis: 0
-	    		}, {
-	        		data: [0],
-	        		yAxis: 1
-	    		}]
+		//retreive and display video data
+		var frameCnt = 0;
+		var newImage = new Image();
+		var imageBase ="video.jpg";
+		newImage.src = imageBase;
+		function refreshVideoFrame() {
+			if(newImage.complete) {
+    			document.getElementById("video").src = newImage.src;
+    			newImage = new Image();
+    			newImage.src = 'http://localhost:8080/androbotus/webvideo' + "#" + frameCnt;
+        		cnt++;
 			}
 		}
 			
+		//video is currently switched off
+		//refresh image with 25 fps rate to make illusion of video. Poor mans solution though...
+		//setInterval(function(){refreshVideoFrame()}, 40);
 			
-		//refresh motor thrust levels
-		function updateIndivThrust(chart, level) {
-			//request server to get new attitude data
-			setInterval(function () {
-			   var left = chart.series[0].points[0];
-	         var right = chart.series[1].points[0];
+		//bind parameter input boxes to listen the keyboard events
+		function postParameter(code, element) {
+	        console.log("changed " + element.val());
+			//$(this).data("previousValue", $(this).val());
+					
+			var controlJson = createControlJson(code, element.val());
+			//send new parameter
+			$.post('http://localhost:8080/androbotus/webaccess',
+				controlJson,
+    			function(){
+    			    appendToLog('Updated param:' + code + ":" + element.val());
+    			}
+    		);
+		}
 
-				$.ajax({
-					type: "GET",
-  		       url: 'http://localhost:8080/androbotus/webaccess/attitude',
-     	     contentType: 'application/json; charset=utf-8',
-					 dataType: 'json',
+        var attitude = {};
+		function updateAttitude() {
+			$.ajax({
+				type: "GET",
+  		       	url: 'http://localhost:8080/androbotus/webaccess/attitude',
+     	     	contentType: 'application/json; charset=utf-8',
+				dataType: 'json',
          		success: function(json){
          	  		//if success then get the fresh attitude and update corresponding chart sections
-         	  		var leftVal = 0;
-         	  		var rightVal = 0;
-         	  		if (level == 'FRONT'){
-         	  			leftVal = json.attitudeMap.FL;
-         	     	   rightVal = json.attitudeMap.FR;		
-         	  		} else if (level == 'REAR') {
-         	  			leftVal = json.attitudeMap.RL;
-         	     	   rightVal = json.attitudeMap.RR;		         	  
-         	  		}
-						left.update(leftVal, false);
-						right.update(rightVal, false);
-						chart.redraw();      	  
+         	  		attitude.attitudeMap = json.attitudeMap;
          		}
-       	});
-       }, 50);
-    	}	
-			
-		function updateIndivThrustFake(chart) {
-			setInterval(function() {
-				var left = chart.series[0].points[0],
-	            		right = chart.series[1].points[0],
-	            		leftVal, 
-	            		inc = (Math.random() - 0.5) * 15;
-			
-				leftVal =  left.y + inc;
-				rightVal = leftVal + inc / 3;
-				if (leftVal < 0 || leftVal > 100) {
-					leftVal = left.y - inc;
-				}
-				if (rightVal < 0 || rightVal > 100) {
-					rightVal = leftVal;
-				}
-			
-				left.update(leftVal, false);
-				right.update(rightVal, false);
-				chart.redraw();
-			
-			}, 500);
-	
+         	});
+
+            if (attitude.attitudeMap){
+       		    if (rollChart){
+       			    updateGuage(rollChart, -90, 90, attitude.attitudeMap.SENSOR_ROLL);
+       		    }
+       		    if (pitchChart){
+       			    updateGuage(pitchChart, -90, 90, attitude.attitudeMap.SENSOR_PITCH);
+       		    }
+       		    if (yawChart){
+                    updateGuage(yawChart, -180, 180, attitude.attitudeMap.SENSOR_YAW);
+                }
+       		    if (flChart){
+       			    updateGuage(flChart, 0, 100, attitude.attitudeMap.FL);
+       		    }
+       		    if (frChart){
+       			    updateGuage(frChart, 0, 100, attitude.attitudeMap.FR);
+       		    }
+       		    if (rlChart){
+       		        updateGuage(rlChart, 0, 100, attitude.attitudeMap.RL);
+       		    }
+       		    if (rrChart){
+                    updateGuage(rrChart, 0, 100, attitude.attitudeMap.RR);
+                }
+       		}
+       		delete attitude.attitudeMap;  //delete the reference explicitly
 		}
-		
-		//create thrust guage for front motors
-		var frontChart = createIndivThrust('Front');
-		$(function() {
-			$('#front-thrust').highcharts(frontChart, function(chart){updateIndivThrust(chart, 'FRONT')});
+
+		//create all the charts first
+        var flChart = createIndivThrust('fl-thrust', 'FR');
+        var frChart = createIndivThrust('fr-thrust', 'FL');
+        var rlChart = createIndivThrust('rl-thrust', 'RL');
+        var rrChart = createIndivThrust('rr-thrust', 'RR');
+        var rollChart = createRollPitchGuage('roll', 'Roll', -90, 90, true);
+        var pitchChart = createRollPitchGuage('pitch', 'Pitch', -90, 90, true);
+        var yawChart = createRollPitchGuage('yaw', 'Yaw', -180, 180, false);
+
+		$(document).ready(function() {
+		    //init charts
+		    flChart.init();
+            frChart.init();
+            rlChart.init();
+            rrChart.init();
+            rollChart.init();
+            rollChart.setValue(0);
+            pitchChart.init();
+            pitchChart.setValue(0);
+            yawChart.init();
+            yawChart.setValue(0);
+
+			setInterval(function(){updateAttitude();}, 40); //update rate is 25 frames per second
+				
+            //bind param controls
+            var pparam = $("#pparam");
+            var dparam = $("#dparam");
+            var iparam = $("#iparam");
+            var imax = $("#imax");
+            var rollcorr = $("#rollcorr");
+            var pitchcorr = $("#pitchcorr");
+            var yawcorr = $("#yawcorr");
+			
+            pparam.bind('click', function(){postParameter('PPARAM', pparam);});
+            iparam.bind('click', function(){postParameter('IPARAM', iparam);});
+            dparam.bind('click', function(){postParameter('DPARAM', dparam);});
+            imax.bind('click', function(){postParameter('IMAX', imax);});
+            rollcorr.bind('click', function(){postParameter('ROLL_CORR', rollcorr);});
+            pitchcorr.bind('click', function(){postParameter('PITCH_CORR', pitchcorr);});
+            yawcorr.bind('click', function(){postParameter('YAW_CORR', yawcorr);});
+				
 		});
-		//create thrust guage for rear motors
-		var rearChart = createIndivThrust('Rear');
-		$(function() {
-			$('#rear-thrust').highcharts(rearChart, function(chart){updateIndivThrust(chart, 'REAR')});
-		});
-			
-			
-			
-			var cnt = 0;
-			//this function is turned off since all the sensors should use charts as of now
-			//setInterval(function(){updateSensors()},30);
-			
-			//retreive and display video data
-			var frameCnt = 0;
-			var newImage = new Image();
-			var imageBase ="video.jpg"; 
-			newImage.src = imageBase;
-			function refreshVideoFrame() {
-				if(newImage.complete) {
-    				document.getElementById("video").src = newImage.src;
-    				newImage = new Image();
-    				newImage.src = 'http://localhost:8080/androbotus/webvideo' + "#" + frameCnt;
-        			cnt++;
-				}
-			}
-			
-			//video is currently switched off
-			//refresh image with 30 fps rate to make illusion of video. Poor man's solution though...
-			//setInterval(function(){refreshVideoFrame()}, 30);
-			
-			//bind parameter input boxes to listen the keyboard events
-			function postParameter(code, element) {
-			    console.log("changed " + element.val());           
-					//$(this).data("previousValue", $(this).val());
-					
-					var controlJson = createControlJson(code, element.val());
-					//send new parameter
-					$.post('http://localhost:8080/androbotus/webaccess', 
-							controlJson,
-    						function(){
-    							appendToLog('Updated param:' + code + ":" + element.val());
-    						}
-		    		);
-			}
-			
-			$(document).ready(function() {
-				//bind param controls
-				var pparam = $("#pparam");
-				var dparam = $("#dparam");
-				var iparam = $("#iparam");
-				var imax = $("#imax");
-			
-				pparam.bind('click', function(){postParameter('PPARAM', pparam);});
-				iparam.bind('click', function(){postParameter('IPARAM', iparam);});
-				dparam.bind('click', function(){postParameter('DPARAM', dparam);});
-				imax.bind('click', function(){postParameter('IMAX', imax);});
-			});
 		</script>
 		<style>
       		video {
@@ -551,12 +377,19 @@
     					</div>
     				</td>
     				<td>
-    					<div id="roll" style="width: 400px; height: 300px; margin: 0 auto"></div>
-    					<div id="pitch" style="width: 400px; height: 300px; margin: 0 auto"></div>			
+    					<div id="roll" class="jgauge"></div>
+    					<div id="pitch" class="jgauge"></div>
+    					<div id="yaw" class="jgauge"></div>
     				</td>
     				<td>
-			    		<div id="front-thrust" style="width: 600px; height: 300px; margin: 0 auto"></div>
-    					<div id="rear-thrust" style="width: 600px; height: 300px; margin: 0 auto"></div>
+    					<div>
+    					    <div id="fl-thrust" class="jgauge"></div>
+    					    <div id="fr-thrust" class="jgauge"></div>
+    					</div>
+                        <div>
+                            <div id="rl-thrust" class="jgauge"></div>
+                            <div id="rr-thrust" class="jgauge"></div>
+                        </div>
     				</td>
     			</tr>
     		</table>
@@ -576,19 +409,21 @@
 			</table>			
 			<div>	
 				<div>
-					P: <input id="pparam" type="number" min="0" max="1" step=".01" value=".75"/>  
-					I: <input id="iparam" type="number" min="0" max="1" step=".01" value=".25"/>  
-					D: <input id="dparam" type="number" min="0" max="1" step=".01" value=".50"/>  
+					P: <input id="pparam" type="number" min="0" max="1" step=".01" value=".1"/>  
+					I: <input id="iparam" type="number" min="0" max="1" step=".01" value=".05"/>  
+					D: <input id="dparam" type="number" min="0" max="1" step=".01" value=".05"/>  
 					IMAX: <input id="imax" type="number" min="0" max="100" value="40"/>
+					Roll-Corr: <input id="rollcorr" type="number" min="0" max="1" step=".1" value=".1"/>  
+					Pitch-Corr: <input id="pitchcorr" type="number" min="0" max="1" step=".1" value=".1"/>  
+					Yaw-Corr: <input id="yawcorr" type="number" min="0" max="1" step=".1" value=".1"/>  
 				</div>
+				<div><INPUT id="reset" TYPE=BUTTON OnClick="btnPressed('RESET');" VALUE="RESET"/></div>
 				<span>
 					<textarea id="log" lines="15" col="20">Output log</textarea>
 				</span>	
 				<span id="sensors">
 				</span>
-				
 			</div>
-				
 		</div>
 	</body>
 </html>
