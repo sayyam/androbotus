@@ -63,7 +63,7 @@ public class RoboticCarImpl extends AbstractRobot{
 		
 		modules.add(new ModuleEntry(this.servo, new String[]{LocalTopics.SERVO.name()}));
 		modules.add(new ModuleEntry(this.motor, new String[]{LocalTopics.ESC.name()}));
-		modules.add(new ModuleEntry(new SensorModule(sensorManager, 100, logger), new String[]{Topics.SENSOR.name()}));
+		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, logger, SensorManager.AXIS_Z, SensorManager.AXIS_MINUS_X), new String[]{Topics.SENSOR.name()}));
 		
 		return modules;
 	}

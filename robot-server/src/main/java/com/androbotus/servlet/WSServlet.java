@@ -17,21 +17,22 @@
 package com.androbotus.servlet;
 
 
+
 /**
  * The main servlet that translates sensors data to web ui
  * @author maximlukichev
  *
  */
-public class WSServlet {/*extends WebSocketServlet {
+public class WSServlet { /*extends WebSocketServlet {
 
 	private static final long serialVersionUID = 5279825994434790154L;
 
 	@Override
 	protected StreamInbound createWebSocketInbound(String subProtocol, HttpServletRequest request) {
-		return new SensorInboud();
+		return new AndrobotusInboud();
 	}
 	
-	private static class SensorInboud extends MessageInbound {
+	private static class AndrobotusInboud extends MessageInbound {
 		private WsOutbound outbound;
 		private int msgCount = 0;
 		private Thread runningThread;

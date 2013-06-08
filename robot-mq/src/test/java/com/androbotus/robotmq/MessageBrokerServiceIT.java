@@ -12,6 +12,7 @@ import com.androbotus.mq2.core.MessageHandler;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPLocalConnection;
 import com.androbotus.mq2.core.impl.TCPMessageHandlerImpl;
+import com.androbotus.mq2.core.impl.TCPRemoteConnection;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.impl.SimpleLogger;
 import com.androbotus.mq2.module.AbstractModule;
@@ -67,6 +68,25 @@ public class MessageBrokerServiceIT {
 		broker.stop();
 		connection.close();
 		socket.close();
+	}
+	
+
+	@Test
+	public void testReceiveStandByMode() throws Exception {
+		//Launch the broker and keep it stand by for a while
+		
+		Connection connection = new TCPLocalConnection(5000);
+		connection.open();
+		Thread.sleep(1000);
+		//connect to a server
+		Connection c2 = new TCPRemoteConnection(5000, InetAddress.getLocalHost());
+		c2.open();
+		
+		RemoteMessageBrokerImpl broker = new RemoteMessageBrokerImpl(connection, new SimpleLogger());
+		broker.start();
+		Thread.sleep(100000);
+		
+		broker.stop();
 	}
 	
 	@Test

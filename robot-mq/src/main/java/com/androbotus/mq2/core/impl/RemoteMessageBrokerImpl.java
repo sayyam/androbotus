@@ -124,9 +124,14 @@ public class RemoteMessageBrokerImpl extends MessageBrokerImpl {
 				SocketMessage m = null;
 				try {
 					MessageHandler mh = connection.getMessageHandler();
-					if (connection.isOpen() && mh != null){
+					if (!connection.isOpen() || mh == null){
+						//keep checking for connection once in a second
+						Thread.sleep(1000);
+					}
+					if (mh != null){
 						m = mh.receiveMessage();
-					}	
+					}
+
 				} catch (Exception e) { 
 					//wait till socket is ready... 
 					try { 
@@ -136,9 +141,9 @@ public class RemoteMessageBrokerImpl extends MessageBrokerImpl {
 						//do nothing
 					}
 				}
-				if (m == null)
+				if (m == null){
 					continue;
-
+				}
 				try {
 					pushMessage(m.getTopicName(), m.getEmbeddedMessage());
 				} catch (Exception e) {

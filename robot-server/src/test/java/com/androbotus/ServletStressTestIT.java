@@ -26,6 +26,7 @@ public class ServletStressTestIT {
 	
 	private float roll = 0;
 	private float pitch = 0;
+	private float yaw = 0;
 	
 	private final static Random rnd = new Random();
 	
@@ -38,14 +39,16 @@ public class ServletStressTestIT {
 		
 		am.getParameterMap().put("SENSOR_ROLL", roll);
 		am.getParameterMap().put("SENSOR_PITCH", pitch);
+		am.getParameterMap().put("SENSOR_YAW", yaw);
 		
 		fl = Math.max(Math.min(fl + getRndSign() * rnd.nextFloat()*5, 100), 0);
 		fr = Math.max(Math.min(fr + getRndSign() * rnd.nextFloat()*5, 100), 0);
 		rl = Math.max(Math.min(rl + getRndSign() * rnd.nextFloat()*5, 100), 0);
 		rr = Math.max(Math.min(rr + getRndSign() * rnd.nextFloat()*5, 100), 0);
 		
-		roll = Math.max(Math.min(roll + getRndSign() * rnd.nextFloat()*5, 90), -90);
-		pitch = Math.max(Math.min(pitch + getRndSign() * rnd.nextFloat()*5, 90), -90);
+		roll = Math.max(Math.min(roll + getRndSign() * rnd.nextFloat()*5, 89), -89);
+		pitch = Math.max(Math.min(pitch + getRndSign() * rnd.nextFloat()*5, 89), -89);
+		yaw = Math.max(Math.min(yaw + getRndSign() * rnd.nextFloat()*10, 179), -179);
 		return am;
 	}
 	
@@ -65,7 +68,7 @@ public class ServletStressTestIT {
 			while (cnt < 1000000) {
 				AttitudeMessage am = createAttitudeMessage();
 				broker.pushMessageRemote(Topics.ATTITUDE.name(), am);
-				Thread.sleep(1);
+				Thread.sleep(40);
 				System.out.println("Control message sent..." + cnt);
 				cnt ++;
 			}

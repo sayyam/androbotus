@@ -77,10 +77,10 @@ public class RoboticQuadImpl extends AbstractRobot{
 		
 		//this is the quadcopter stabilization module, responsible for yaw/pitch/roll stabilization
 		modules.add(new ModuleEntry(new ReportingQuadPwmModuleImpl(ioio, new int[]{3,4,5,6}, 0, logger, connectIOIO), 
-				new String[]{Topics.CONTROL.name(), LocalTopics.ROTATION_VECTOR.name()}));
+				new String[]{Topics.CONTROL.name(), LocalTopics.ROTATION_VECTOR.name(), LocalTopics.GYRO.name()}));
 		
 		//we need to define sensor module
-		modules.add(new ModuleEntry(new SensorModule(sensorManager, 50, logger), new String[]{LocalTopics.DUMMY.name()}));
+		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, logger, SensorManager.AXIS_Z, SensorManager.AXIS_MINUS_X), new String[]{Topics.CONTROL.name()}));
 
 		//we need this module to be able send messages to the server
 		//modules.add(new ModuleEntry(new RemoteMessageModuleImpl(logger), new String[]{LocalTopics.REMOTE.name()}));

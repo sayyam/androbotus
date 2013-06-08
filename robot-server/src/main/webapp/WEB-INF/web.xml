@@ -6,6 +6,8 @@
 	<servlet-mapping>
 	    <servlet-name>default</servlet-name>
 	    <url-pattern>/scripts/*</url-pattern>
+        <url-pattern>/css/*</url-pattern>
+        <url-pattern>/images/*</url-pattern>
 	</servlet-mapping>
 
 	<!-- servlet>

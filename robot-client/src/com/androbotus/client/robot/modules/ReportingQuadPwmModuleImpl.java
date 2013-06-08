@@ -4,6 +4,7 @@ import ioio.lib.api.IOIO;
 
 import com.androbotus.client.contract.LocalAttitudeParameters;
 import com.androbotus.client.contract.Topics;
+import com.androbotus.client.util.MathUtils;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
@@ -42,8 +43,7 @@ public class ReportingQuadPwmModuleImpl extends QuadPwmModuleImpl{
 	/**
 	 * Creates reporting pwm module for quadcopter
 	 * @param ioio the ioio instance
-	 * @param pin the array of pins to connect to
-	 * @param parameterName the name of the pwm module to report 
+	 * @param pins the array of pins to connect to
 	 * @param startValue the initial value to be set to pwm whenever the module starts
 	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
 	 * @param logger the logger
@@ -56,7 +56,7 @@ public class ReportingQuadPwmModuleImpl extends QuadPwmModuleImpl{
 	/**
 	 * Creates reporting pwm module for quadcopter
 	 * @param ioio the ioio instance
-	 * @param pin the array of pins to connect to 
+	 * @param pins the array of pins to connect to
 	 * @param startValue the initial value to be set to pwm whenever the module starts
 	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
 	 * @param logger the logger
@@ -79,9 +79,9 @@ public class ReportingQuadPwmModuleImpl extends QuadPwmModuleImpl{
 		am.getParameterMap().put(LocalAttitudeParameters.RL.name(), thrustValues[2]);
 		am.getParameterMap().put(LocalAttitudeParameters.RR.name(), thrustValues[3]);
 		
-		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_ROLL.name(), sensorRoll);
-		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_PITCH.name(), sensorPitch);
-		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_YAW.name(), sensorYaw);
+		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_ROLL.name(), currentOrientation[0]);
+		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_PITCH.name(), currentOrientation[1]);
+		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_YAW.name(), currentOrientation[2]);
 		
 		am.getParameterMap().put(LocalAttitudeParameters.ROLL.name(), (float)roll);
 		am.getParameterMap().put(LocalAttitudeParameters.PITCH.name(), (float)pitch);

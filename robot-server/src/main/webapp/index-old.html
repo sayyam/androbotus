@@ -3,24 +3,18 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Androbotus - Main</title>
-<link rel="stylesheet" href="jgauge/css/gauge_screen.css" type="text/css" />
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="http://code.highcharts.com/highcharts.js"></script>
 <script src="http://code.highcharts.com/highcharts-more.js"></script>
 <script src="http://code.highcharts.com/modules/exporting.js"></script>
-<script language="javascript" type="text/javascript" src="jgauge/js/jQueryRotate.min.js"></script>
-<script language="javascript" type="text/javascript" src="jgauge/js/jgauge-0.3.0.a3.js"></script>
-
 <script type="text/javascript">
 //vars
 //var attitude;
 var rollChart;
 var pitchChart;
 var yawChart;
-var flChart;
-var frChart;
-var rlChart;
-var rrChart;
+var frontThrustChart;
+var rearThrustChart;
 
 
 //emulates click on the button with given id
@@ -164,21 +158,112 @@ btnPressed('S');
 });
 
 //create a speedometer-like guage to display roll and pitch angles
-function createRollPitchGuage(id, name, min, max){
-var g = new jGauge(); // Create a new jGauge.
-g.id = id;
-g.label.suffix = name; // Make the value label bytes.
-g.ticks.count = 5;
-g.ticks.start = min;
-g.ticks.end = max;
-g.width = 170;
-g.height = 170;
+function createRollPitchGuage(name, min, max){
+return	{
+chart: {
+type: 'gauge',
+animation: false,
+plotBackgroundColor: null,
+plotBackgroundImage: null,
+plotBorderWidth: 0,
+plotShadow: true
+},
 
-return g;
+title: {
+text: name
+},
+
+pane: {
+startAngle: -150,
+endAngle: 150,
+background: [{
+backgroundColor: {
+linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+stops: [
+[0, '#FFF'],
+[1, '#333']
+]
+},
+borderWidth: 0,
+outerRadius: '109%'
+}, {
+backgroundColor: {
+linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+stops: [
+[0, '#333'],
+[1, '#FFF']
+]
+},
+borderWidth: 1,
+outerRadius: '107%'
+}, {
+// default background
+}, {
+backgroundColor: '#DDD',
+borderWidth: 0,
+outerRadius: '105%',
+innerRadius: '103%'
+}]
+},
+
+// the value axis
+yAxis: {
+min: min,
+max: max,
+
+minorTickInterval: 'auto',
+minorTickWidth: 1,
+minorTickLength: 10,
+minorTickPosition: 'inside',
+minorTickColor: '#666',
+
+tickPixelInterval: 30,
+tickWidth: 2,
+tickPosition: 'inside',
+tickLength: 10,
+tickColor: '#666',
+labels: {
+step: 2,
+rotation: 'auto'
+},
+title: {
+text: name
+},
+plotBands: [{
+from: min + 60,
+to: max - 60 ,
+color: '#55BF3B' // green
+}, {
+from: min + 30,
+to: min + 60,
+color: '#DDDF0D' // yellow
+}, {
+from: max - 60,
+to: max - 30,
+color: '#DDDF0D' // yellow
+}, {
+from: min,
+to: min + 30,
+color: '#DF5353' // red
+}, {
+from: max - 30,
+to: max,
+color: '#DF5353' // red
+}]
+},
+
+series: [{
+name: name,
+data: [0],
+tooltip: {
+valueSuffix: 'degree'
+}
+}]
+}
 }
 
 //request new roll/pitch/yaw values from the server to plot them on the guage
-function updateGuage(guage, min, max, value) {
+function updateRollPitchGuage(chart, min, max, value) {
 if (!chart.renderer.forExport) {
 var val = 0;
 if (value){
@@ -190,36 +275,159 @@ val = min;
 if (val > max){
 val = max;
 }
-guage.setValue(val);
+var point = chart.series[0].points[0];
+point.update(val);
 }
 }
+
+//create roll guage
+var roll = createRollPitchGuage('Roll', -90, 90);
+$(function () {$('#roll').highcharts(roll, function(chart){rollChart = chart;});});
+
+//create pitch guage
+var pitch = createRollPitchGuage('Pitch', -90, 90);
+$(function () {$('#pitch').highcharts(pitch, function(chart){pitchChart = chart;});});
+
 
 //create guage for engines thrust. A single guage displays thrust level for 2 engines
-function createIndivThrust(id, name) {
-var g = new jGauge(); // Create a new jGauge.
-g.id = id; // Link the new jGauge to the placeholder DIV.
-g.imagePath = 'jguage/img/jgauge_face_taco.png';
-g.segmentStart = -225
-g.segmentEnd = 45
-g.width = 170;
-g.height = 170;
-g.needle.imagePath = 'jguage/img/jgauge_needle_taco.png';
-g.needle.xOffset = 0;
-g.needle.yOffset = 0;
-g.label.yOffset = 55;
-g.label.color = '#fff';
-g.label.precision = 0; // 0 decimals (whole numbers).
-g.label.suffix = name; // Make the value label watts.
-g.ticks.labelRadius = 45;
-g.ticks.labelColor = '#0ce';
-g.ticks.start = 0;
-g.ticks.end = 100;
-g.ticks.count = 11;
-g.ticks.color = 'rgba(0, 0, 0, 0)';
-g.range.color = 'rgba(0, 0, 0, 0)';
+function createIndivThrust(name) {
+return {
+chart: {
+type: 'gauge',
+animation: false,
+plotBorderWidth: 1,
+plotBackgroundColor: {
+linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+stops: [
+[0, '#FFF4C6'],
+[0.3, '#FFFFFF'],
+[1, '#FFF4C6']
+]
+},
+plotBackgroundImage: null,
+height: 200
+},
 
-return g;
+title: {text: name + ' Engines Thrust'},
+
+pane: [{
+startAngle: -45,
+endAngle: 45,
+background: null,
+center: ['25%', '145%'],
+size: 300
+}, {
+startAngle: -45,
+endAngle: 45,
+background: null,
+center: ['75%', '145%'],
+size: 300
+}],
+
+yAxis: [{
+min: 0,
+max: 100,
+minorTickPosition: 'outside',
+tickPosition: 'outside',
+labels: {
+rotation: 'auto',
+distance: 20
+},
+plotBands: [{
+from: 80,
+to: 100,
+color: '#C02316',
+innerRadius: '100%',
+outerRadius: '105%'
+}],
+pane: 0,
+title: {
+text: '<span style="font-size:10px">' + name + ' Left</span>',
+y: -40
 }
+}, {
+min: 0,
+max: 100,
+minorTickPosition: 'outside',
+tickPosition: 'outside',
+labels: {
+rotation: 'auto',
+distance: 20
+},
+plotBands: [{
+from: 80,
+to: 100,
+color: '#C02316',
+innerRadius: '100%',
+outerRadius: '105%'
+}],
+pane: 1,
+title: {
+text: '<span style="font-size:10px">' + name + ' Right</span>',
+y: -40
+}
+}],
+
+plotOptions: {
+gauge: {
+dataLabels: {
+enabled: false
+},
+dial: {
+radius: '100%'
+}
+}
+},
+
+
+series: [{
+data: [0],
+yAxis: 0
+}, {
+data: [0],
+yAxis: 1
+}]
+}
+}
+
+
+//refresh motor thrust levels
+function updateIndivThrust(chart, leftVal, rightVal) {
+var left = chart.series[0].points[0];
+var right = chart.series[1].points[0];
+
+var lv = 0;
+var rv = 0;
+if (leftVal){
+lv = leftVal;
+}
+if (rightVal){
+rv = rightVal;
+}
+left.update(lv, false);
+right.update(rv, false);
+chart.redraw();
+}
+
+//create thrust guage for front motors
+var fChart = createIndivThrust('Front');
+$(function() {
+$('#front-thrust').highcharts(fChart, function(chart){
+//updateIndivThrust(chart, 'FRONT')
+frontThrustChart = chart;
+});
+});
+
+//create thrust guage for rear motors
+var rearChart = createIndivThrust('Rear');
+$(function() {
+$('#rear-thrust').highcharts(rearChart, function(chart){
+//updateIndivThrust(chart, 'REAR')
+rearThrustChart = chart;
+});
+});
+
+
 
 var cnt = 0;
 //this function is turned off since all the sensors should use charts as of now
@@ -273,50 +481,24 @@ attitude = json;
 
 if (attitude && attitude.attitudeMap){
 if (rollChart){
-updateGuage(rollChart, -90, 90, attitude.attitudeMap.SENSOR_ROLL);
+updateRollPitchGuage(rollChart, -90, 90, attitude.attitudeMap.SENSOR_ROLL);
 }
 if (pitchChart){
-updateGuage(pitchChart, -90, 90, attitude.attitudeMap.SENSOR_PITCH);
+updateRollPitchGuage(pitchChart, -90, 90, attitude.attitudeMap.SENSOR_PITCH);
 }
-if (yawChart){
-updateGuage(yawChart, -180, 180, attitude.attitudeMap.SENSOR_PITCH);
+if (frontThrustChart){
+updateIndivThrust(frontThrustChart, attitude.attitudeMap.FL, attitude.attitudeMap.FR);
 }
-if (flChart){
-updateGuage(flChart, 0, 100, attitude.attitudeMap.FL);
-}
-if (frChart){
-updateGuage(frChart, 0, 100, attitude.attitudeMap.FR);
-}
-if (rlChart){
-updateGuage(rlChart, 0, 100, attitude.attitudeMap.RL);
-}
-if (rrChart){
-updateGuage(rrChart, 0, 100, attitude.attitudeMap.RR);
+if (rearThrustChart){
+updateIndivThrust(rearThrustChart, attitude.attitudeMap.RL, attitude.attitudeMap.RR);
 }
 }
 delete attitude;
 }
 
-//create all the charts first
-var flChart = createIndivThrust('fl-thrust', 'FR');
-var frChart = createIndivThrust('fr-thrust', 'FL');
-var rlChart = createIndivThrust('rl-thrust', 'RL');
-var rrChart = createIndivThrust('rl-thrust', 'RR');
-var rollChart = createRollPitchGuage('roll', 'Roll', -90, 90);
-var pitchChart = createRollPitchGuage('pitch', 'Pitch', -90, 90);
-var yawChart = createRollPitchGuage('yaw', 'Yaw', -180, 180);
-
 $(document).ready(function() {
-//init charts
-flChart.init();
-frChart.init();
-rlChart.init();
-rrChart.init();
-rollChart.init();
-pitchChart.init();
-yawChart.init();
 
-setInterval(updateAttitude(), 40); //update rate is 25 frames per second
+setInterval(function () { updateAttitude()	}, 40); //update rate is 24 frames per second to make the picture look smooth
 
 //bind param controls
 var pparam = $("#pparam");
@@ -368,13 +550,12 @@ yawcorr.bind('click', function(){postParameter('YAW_CORR', yawcorr);});
                 </div>
             </td>
             <td>
-                <div id="roll"></div>
-                <div id="pitch"></div>
-                <div id="yaw"></div>
+                <div id="roll" style="width: 400px; height: 300px; margin: 0 auto"></div>
+                <div id="pitch" style="width: 400px; height: 300px; margin: 0 auto"></div>
             </td>
             <td>
-                <div><span id="fl-thrust"</span><span id="fr-thrust"</span></div>
-                <div><span id="rl-thrust"</span><span id="rr-thrust"</span></div>
+                <div id="front-thrust" style="width: 600px; height: 200px; margin: 0 auto"></div>
+                <div id="rear-thrust" style="width: 600px; height: 200px; margin: 0 auto"></div>
             </td>
         </tr>
     </table>

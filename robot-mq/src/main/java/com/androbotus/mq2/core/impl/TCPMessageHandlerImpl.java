@@ -16,20 +16,20 @@
  */
 package com.androbotus.mq2.core.impl;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.core.MessageHandler;
-import com.androbotus.mq2.util.NumUtils;
 
 /**
  * Basic implementation of message handler using TCP protocol
@@ -40,7 +40,7 @@ import com.androbotus.mq2.util.NumUtils;
 
 public class TCPMessageHandlerImpl implements MessageHandler {
 	
-	private final static int BUF_LEN = 1024;
+	private final static int BUF_LEN = 128000; //keep a large buffer
 	//private final static String MESSAGE_BRAKE = "###MSG_END###";
 	
 	private Socket socket;
@@ -53,8 +53,6 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 	
 	private ReentrantLock readLock = new ReentrantLock();
 	private ReentrantLock writeLock = new ReentrantLock();
-	
-	
 	
 	public TCPMessageHandlerImpl(Socket socket) {
 		this.socket = socket;
@@ -77,6 +75,7 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 		return obw;
 	}*/
 	
+	
 	private ObjectOutputStream getOutputStream() throws Exception {
 		if (bos == null) {
 			bos = new ObjectOutputStream(socket.getOutputStream());
@@ -93,6 +92,7 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 		return bis;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public <T extends Message> T receiveMessage() throws Exception {
 		if (socket == null){
 			throw new SocketException("Socket can not be null");
@@ -101,7 +101,16 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 		T message = null;
 		readLock.lock();
 		try {
-			message = (T)getInputStream().readObject();
+			//while (getInputStream().available() == 0)
+			//	Thread.sleep(10);
+			
+			/*int size = getInputStream().readInt();
+			getInputStream().readFully(buf, 0 , size);
+			//just to confirm that the whole input is read
+			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buf, 0, size));*/
+
+			message = (T)getInputStream().readObject();	
+
 		} finally {
 			readLock.unlock();
 		}
@@ -116,7 +125,19 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 		
 		writeLock.lock();
 		try {
+			/*ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(bos);
+			oos.writeObject(message);
+			oos.close();
+			byte[] bytes = bos.toByteArray();
+			int size = bytes.length;
+			oos.close();
+			
+			getOutputStream().writeInt(size);
+			getOutputStream().write(bytes);
+			getOutputStream().flush();*/
 			getOutputStream().writeObject(message);
+			getOutputStream().flush();
 		} finally {
 			writeLock.unlock();
 		}
