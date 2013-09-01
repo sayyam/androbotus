@@ -17,5 +17,5 @@
 package com.androbotus.contract;
 
 public enum Topics {
-	SENSOR, CONTROL, ATTITUDE;
+	SENSOR, CONTROL, ATTITUDE, VIDEO;
 }

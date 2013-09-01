@@ -88,26 +88,9 @@
 					//yaw right
 					type = 'YAW';
 					value = 1;
-				} else if (code == 'PPARAM') {
-					//p parameter
-					type = 'PPARAM';
-				} else if (code == 'IPARAM') {
-					//i parameter
-					type = 'IPARAM';
-				} else if (code == 'DPARAM') {
-					//d parameter
-					type = 'DPARAM';
-				} else if (code == 'IMAX') {
-					//imax parameter
-					type = 'IMAX';
-				} else if (code == 'RESET') {
-					type = 'RESET';			
-				} else if (code == 'ROLL_CORR') {
-					type = 'ROLL_CORR';			
-				} else if (code == 'PITCH_CORR') {
-					type = 'PITCH_CORR';			
-				} else if (code == 'YAW_CORR') {
-					type = 'YAW_CORR';			
+				} else {
+				    //for all other cases send the same type as the code
+				    type = code;
 				}
 				
 				//var json = {type: "", controlValue: ""};
@@ -228,27 +211,27 @@
 		}
 
 	    var cnt = 0;
-		//this function is turned off since all the sensors should use charts as of now
-		//setInterval(function(){updateSensors()},40);
-			
 		//retreive and display video data
-		var frameCnt = 0;
-		var newImage = new Image();
-		var imageBase ="video.jpg";
-		newImage.src = imageBase;
+		//var frameCnt = 0;
+		//var newImage = new Image();
+		//var imageBase ="video.jpg";
+		//newImage.src = imageBase;
 		function refreshVideoFrame() {
-			if(newImage.complete) {
-    			document.getElementById("video").src = newImage.src;
-    			newImage = new Image();
-    			newImage.src = 'http://localhost:8080/androbotus/webvideo' + "#" + frameCnt;
-        		cnt++;
-			}
+		    $.ajax({
+        	    type: "GET",
+          		url: 'http://localhost:8080/androbotus/webaccess/video',
+             	contentType: 'application/json; charset=utf-8',
+        		dataType: 'json',
+                success: function(json){
+                    //the json contains base64 encoded image data
+                    var data = json.data;
+                    if (!data)
+                        return;
+                    $("video").src = "data:image/jpeg;base64,"+ data;
+                }
+            });
 		}
-			
-		//video is currently switched off
-		//refresh image with 25 fps rate to make illusion of video. Poor mans solution though...
-		//setInterval(function(){refreshVideoFrame()}, 40);
-			
+
 		//bind parameter input boxes to listen the keyboard events
 		function postParameter(code, element) {
 	        console.log("changed " + element.val());
@@ -325,7 +308,11 @@
             yawChart.init();
             yawChart.setValue(0);
 
-			setInterval(function(){updateAttitude();}, 40); //update rate is 25 frames per second
+            //update rate is 25 frames per second
+			setInterval(function(){updateAttitude();}, 40);
+
+            //refresh image with 25 fps rate to make illusion of video. Poor mans solution though...
+            setInterval(function(){refreshVideoFrame()}, 40);
 				
             //bind param controls
             var pparam = $("#pparam");
@@ -335,6 +322,7 @@
             var rollcorr = $("#rollcorr");
             var pitchcorr = $("#pitchcorr");
             var yawcorr = $("#yawcorr");
+            var gyroalpha = $("#gyroalpha");
 			
             pparam.bind('click', function(){postParameter('PPARAM', pparam);});
             iparam.bind('click', function(){postParameter('IPARAM', iparam);});
@@ -343,7 +331,18 @@
             rollcorr.bind('click', function(){postParameter('ROLL_CORR', rollcorr);});
             pitchcorr.bind('click', function(){postParameter('PITCH_CORR', pitchcorr);});
             yawcorr.bind('click', function(){postParameter('YAW_CORR', yawcorr);});
-				
+            gyroalpha.bind('click', function(){postParameter('LOW_PASS_GYRO', gyroalpha);});
+
+            //init all the parameters
+            //postParameter('PPARAM', pparam);
+            //postParameter('IPARAM', iparam);
+            //postParameter('DPARAM', dparam);
+            //postParameter('IMAX', imax);
+            //postParameter('ROLL_CORR', rollcorr);
+            //postParameter('PITCH_CORR', pitchcorr);
+            //postParameter('YAW_CORR', yawcorr);
+            //postParameter('LOW_PASS_GYRO', gyroalpha);
+
 		});
 		</script>
 		<style>
@@ -410,12 +409,13 @@
 			<div>	
 				<div>
 					P: <input id="pparam" type="number" min="0" max="1" step=".01" value=".1"/>  
-					I: <input id="iparam" type="number" min="0" max="1" step=".01" value=".05"/>  
-					D: <input id="dparam" type="number" min="0" max="1" step=".01" value=".05"/>  
-					IMAX: <input id="imax" type="number" min="0" max="100" value="40"/>
+					I: <input id="iparam" type="number" min="0" max="1" step=".01" value="0"/>
+					D: <input id="dparam" type="number" min="0" max="1" step=".01" value=".1"/>
+					IMAX: <input id="imax" type="number" min="0" max="100" value="0"/>
 					Roll-Corr: <input id="rollcorr" type="number" min="0" max="1" step=".1" value=".1"/>  
 					Pitch-Corr: <input id="pitchcorr" type="number" min="0" max="1" step=".1" value=".1"/>  
-					Yaw-Corr: <input id="yawcorr" type="number" min="0" max="1" step=".1" value=".1"/>  
+					Yaw-Corr: <input id="yawcorr" type="number" min="0" max="1" step=".1" value="0"/>
+					Gyro-alpha: <input id="gyroalpha" type="number" min="0" max="1" step=".1" value="0.9"/>
 				</div>
 				<div><INPUT id="reset" TYPE=BUTTON OnClick="btnPressed('RESET');" VALUE="RESET"/></div>
 				<span>

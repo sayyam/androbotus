@@ -66,7 +66,7 @@ public class SensorMessageIT {
 				System.out.println("Wrong message type: " + message.getClass().getSimpleName());
 			
 			SensorMessage sm = (SensorMessage)message;
-			System.out.println(sm.getSensorName() + ": " + sm.getValueMap().toString());
+			System.out.println(sm.getSensorCode() + ": " + String.format("[%s, %s, %s]", sm.getxValue(), sm.getyValue(), sm.getzValue()));
 		}
 			
 	}

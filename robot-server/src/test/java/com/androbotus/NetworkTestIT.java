@@ -15,7 +15,6 @@ import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.SensorMessage;
 import com.androbotus.mq2.contract.SocketMessage;
 import com.androbotus.mq2.core.Connection;
-import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.core.MessageHandler;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPLocalConnection;
@@ -82,7 +81,7 @@ public class NetworkTestIT {
 			try {
 				SocketMessage cm = mh.receiveMessage();
 				SensorMessage sm = (SensorMessage)cm.getEmbeddedMessage();
-				System.out.println(sm.getSensorName() + ": " + sm.getValueMap().toString());
+				System.out.println(sm.getSensorCode() + ": " + String.format("[%s, %s, %s]", sm.getxValue(), sm.getyValue(), sm.getzValue()));
 			} catch (Exception e){
 				System.out.println("packet lost: " + e.getMessage());
 			}
