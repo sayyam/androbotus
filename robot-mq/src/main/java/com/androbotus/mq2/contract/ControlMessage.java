@@ -42,5 +42,8 @@ public class ControlMessage implements Message{
 	public void setControlName(String controlName) {
 		this.controlName = controlName;
 	}
-	
+	public void clear() {
+		controlName = null;
+		value = 0;
+	}
 }

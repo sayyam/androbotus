@@ -26,19 +26,47 @@ public class SocketMessage implements Message{
 	
 	private String topicName;
 	private Message embeddedMessage;
-	
+	private long timestamp;
+	/**
+	 * @return the topicName
+	 */
 	public String getTopicName() {
 		return topicName;
 	}
+	/**
+	 * @param topicName the topicName to set
+	 */
 	public void setTopicName(String topicName) {
 		this.topicName = topicName;
 	}
+	/**
+	 * @return the embeddedMessage
+	 */
 	public Message getEmbeddedMessage() {
 		return embeddedMessage;
 	}
+	/**
+	 * @param embeddedMessage the embeddedMessage to set
+	 */
 	public void setEmbeddedMessage(Message embeddedMessage) {
 		this.embeddedMessage = embeddedMessage;
 	}
+	/**
+	 * @return the timestamp
+	 */
+	public long getTimestamp() {
+		return timestamp;
+	}
+	/**
+	 * @param timestamp the timestamp to set
+	 */
+	public void setTimestamp(long timestamp) {
+		this.timestamp = timestamp;
+ 	}
 	
-	
+	public void clear() {
+		topicName = null;
+		embeddedMessage = null;
+		timestamp = 0;
+	}
 }

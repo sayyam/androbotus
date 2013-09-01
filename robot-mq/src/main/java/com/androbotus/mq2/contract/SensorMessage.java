@@ -16,7 +16,6 @@
  */
 package com.androbotus.mq2.contract;
 
-import java.util.Map;
 
 
 /**
@@ -29,22 +28,64 @@ public class SensorMessage implements Message {
 	 * 
 	 */
 	private static final long serialVersionUID = -8069928556245739932L;
-	private Map<String, Object> valueMap;
-	private String sensorName;
+	private float xValue;
+	private float yValue;
+	private float zValue;
+	private int sensorCode;
 	
-	public Map<String, Object> getValueMap() {
-		return valueMap;
+	/**
+	 * @return the xValue
+	 */
+	public float getxValue() {
+		return xValue;
 	}
-	public void setValueMap(Map<String, Object> valueMap) {
-		this.valueMap = valueMap;
+	/**
+	 * @param xValue the xValue to set
+	 */
+	public void setxValue(float xValue) {
+		this.xValue = xValue;
 	}
-	public String getSensorName() {
-		return sensorName;
+	/**
+	 * @return the yValue
+	 */
+	public float getyValue() {
+		return yValue;
 	}
-	public void setSensorName(String sensorName) {
-		this.sensorName = sensorName;
+	/**
+	 * @param yValue the yValue to set
+	 */
+	public void setyValue(float yValue) {
+		this.yValue = yValue;
+	}
+	/**
+	 * @return the zValue
+	 */
+	public float getzValue() {
+		return zValue;
+	}
+	/**
+	 * @param zValue the zValue to set
+	 */
+	public void setzValue(float zValue) {
+		this.zValue = zValue;
+	}
+	/**
+	 * @return the sensorCode
+	 */
+	public int getSensorCode() {
+		return sensorCode;
+	}
+	/**
+	 * @param sensorCode the sensorCode to set
+	 */
+	public void setSensorCode(int sensorCode) {
+		this.sensorCode = sensorCode;
 	}
 	
-	
-	
+	public void clear() {
+		sensorCode = -1;
+		xValue = 0;
+		yValue = 0;
+		zValue = 0;
+	}
 }

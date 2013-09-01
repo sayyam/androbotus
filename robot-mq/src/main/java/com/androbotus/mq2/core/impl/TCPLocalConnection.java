@@ -47,7 +47,7 @@ public class TCPLocalConnection implements Connection{
 		this.port = port;
 	}
 	
-	public void open() throws Exception {
+	public synchronized void open() throws Exception {
 		if (isOpen)
 			throw new IllegalStateException("Connection is already opened");
 		

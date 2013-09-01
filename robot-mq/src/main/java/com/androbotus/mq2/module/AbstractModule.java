@@ -89,6 +89,7 @@ public abstract class AbstractModule implements Module {
 		return topics;
 	}
 	
+	//TODO: remove methods start and stop from modules 
 	public void start() {
 		setStarted(true);
 	}

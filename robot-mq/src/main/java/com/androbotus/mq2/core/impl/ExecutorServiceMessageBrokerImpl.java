@@ -7,19 +7,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.androbotus.mq2.contract.Message;
-import com.androbotus.mq2.contract.PooledMessage;
 import com.androbotus.mq2.core.TopicListener;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.module.PooledAsyncModule;
 
 
 /**
- * The message broker that uses thread pool to deliver and process messages 
+ * The message broker that uses m pool to deliver and process messages 
  * @author maximlukichev
  *
  */
-public class PooledMessageBrokerImpl extends MessageBrokerImpl {
+public class ExecutorServiceMessageBrokerImpl extends MessageBrokerImpl {
 	
 	private ExecutorService pool;
 	private int poolSize;
@@ -28,7 +26,7 @@ public class PooledMessageBrokerImpl extends MessageBrokerImpl {
 	 * Default constructor
 	 * @param logger the logger
 	 */
-	public PooledMessageBrokerImpl(int poolSize, Logger logger){
+	public ExecutorServiceMessageBrokerImpl(int poolSize, Logger logger){
 		super(logger);
 		this.poolSize = poolSize;
 	}
@@ -47,16 +45,7 @@ public class PooledMessageBrokerImpl extends MessageBrokerImpl {
 			}
 		}
 	}
-	
-	@Override
-	public void pushMessage(String topicName, Message message) throws Exception {
-		super.pushMessage(topicName, message);
-		//recycle the message once it is delivered to all the recipients
-		if (message instanceof PooledMessage){
-			MessagePoolImpl.getInstance().recycleMessage((PooledMessage)message);
-		}	
-	}
-	
+		
 	@Override
 	public void start() throws Exception {
 		super.start();
