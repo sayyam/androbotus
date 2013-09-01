@@ -1,7 +1,6 @@
 package com.androbotus.mq2.core;
 
 import com.androbotus.mq2.contract.Message;
-import com.androbotus.mq2.contract.PooledMessage;
 
 /**
  * The message pool is the common pool for messages. Whenever there is a need for a message it can be 
@@ -22,11 +21,11 @@ public interface MessagePool {
 	 * 
 	 * @throws exception if is unable to get the available message
 	 */
-	public Message getMessage(Class<? extends PooledMessage> messageClass) throws Exception;
-	/**
+	public <T extends Message>  T getMessage(Class<T> messageClass) throws Exception;
+	/*
 	 * Return a message into the pool. Once the message is recycled all the data in the message is lost 
 	 * @param message
 	 */
-	public void recycleMessage(PooledMessage message);
+	//public void recycleMessage(PooledMessage message);
 	
 }

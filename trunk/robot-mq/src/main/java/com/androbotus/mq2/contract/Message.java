@@ -23,6 +23,9 @@ import java.io.Serializable;
  * @author maximlukichev
  *
  */
-public interface Message extends Serializable{
-	//nothing goes here
+public interface Message extends Serializable{	
+	/**
+	 * Clear the message contents
+	 */
+	public void clear();
 }

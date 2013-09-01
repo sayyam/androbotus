@@ -37,4 +37,8 @@ public class AttitudeMessage implements Message {
 	public Map<String, Float> getParameterMap() {
 		return parameterMap;
 	}
+	
+	public void clear() {
+		parameterMap.clear();
+	}
 }

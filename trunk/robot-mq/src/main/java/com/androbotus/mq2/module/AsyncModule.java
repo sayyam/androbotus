@@ -42,7 +42,7 @@ public abstract class AsyncModule extends AbstractModule {
 	
 	private Lock lock = new ReentrantLock();
 	private Condition hasMessages = lock.newCondition();
-		
+	
 	public AsyncModule(Logger logger){
 		super(logger);
 	}

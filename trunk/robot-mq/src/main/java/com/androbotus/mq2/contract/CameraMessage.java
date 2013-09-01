@@ -45,4 +45,8 @@ public class CameraMessage implements Message {
 		this.data = data;
 	}
 	
+	public void clear() {
+		data = null;
+		frameNum = 0;
+	} 
 }

@@ -27,4 +27,9 @@ public class DummyMessage implements Message{
 	public byte[] getData() {
 		return data;
 	}
+	
+	public void clear() {
+		data = null;
+		id = 0;
+	}
 }	

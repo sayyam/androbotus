@@ -101,16 +101,7 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 		T message = null;
 		readLock.lock();
 		try {
-			//while (getInputStream().available() == 0)
-			//	Thread.sleep(10);
-			
-			/*int size = getInputStream().readInt();
-			getInputStream().readFully(buf, 0 , size);
-			//just to confirm that the whole input is read
-			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buf, 0, size));*/
-
 			message = (T)getInputStream().readObject();	
-
 		} finally {
 			readLock.unlock();
 		}
@@ -125,85 +116,12 @@ public class TCPMessageHandlerImpl implements MessageHandler {
 		
 		writeLock.lock();
 		try {
-			/*ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			ObjectOutputStream oos = new ObjectOutputStream(bos);
-			oos.writeObject(message);
-			oos.close();
-			byte[] bytes = bos.toByteArray();
-			int size = bytes.length;
-			oos.close();
-			
-			getOutputStream().writeInt(size);
-			getOutputStream().write(bytes);
-			getOutputStream().flush();*/
 			getOutputStream().writeObject(message);
 			getOutputStream().flush();
 		} finally {
 			writeLock.unlock();
 		}
 	}
-	
-	
-	
-	/*
-	public <T extends Message> T receiveMessage() throws Exception {
-		if (socket == null){
-			throw new SocketException("Socket can not be null");
-		}
-
-		T message = null;
-		readLock.lock();
-		try {
-			byte[] bSize = new byte[4];
-			BufferedInputStream input = getInputStream();
-			//new ObjectInputStream(getInputStream()).readObject();
-			int res = input.read(bSize, 0, 4);
-			if (res == -1)
-				throw new Exception("The socket stream is over");
-			
-			
-			int size = NumUtils.convertByteToInt(bSize);
-			
-			byte[] data = new byte[size];
-			res = input.read(data, 0, size);
-			if (res == -1)
-				throw new Exception("The socket stream is over");
-						
-			// after all the packets received, reconstruct the message
-			ByteArrayInputStream bis = new ByteArrayInputStream(data);
-			ObjectInputStream ois = new ObjectInputStream(bis);
-			message = (T) ois.readObject();
-			ois.close();
-		} finally {
-			readLock.unlock();
-		}
-
-		return message;
-	}
-	
-	public void sendMessage(Message message) throws Exception {
-		if (socket == null){
-			throw new SocketException("Socket can not be null");
-		}
-		
-		writeLock.lock();
-		try {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			ObjectOutputStream oos = new ObjectOutputStream(bos);
-			oos.writeObject(message);
-			oos.close();
-			byte[] bytes = bos.toByteArray();
-			//String line = new String(bytes);
-			
-			byte[] size = NumUtils.convertIntToByte(bytes.length);
-			BufferedOutputStream out = getOutputStream();
-			out.write(size);
-			out.write(bytes);
-			out.flush();
-		} finally {
-			writeLock.unlock();
-		}
-	}*/
 	
 	@Override
 	protected void finalize() throws Throwable {
