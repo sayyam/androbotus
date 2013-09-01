@@ -16,7 +16,6 @@
  */
 package com.androbotus.client.robot.modules;
 
-import ioio.lib.api.DigitalOutput;
 import ioio.lib.api.IOIO;
 import ioio.lib.api.PwmOutput;
 

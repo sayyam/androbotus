@@ -16,12 +16,15 @@
  */
 package com.androbotus.client.robot.modules;
 
-import ioio.lib.api.DigitalOutput;
 import ioio.lib.api.IOIO;
+import ioio.lib.api.IOIO.State;
 import ioio.lib.api.PwmOutput;
 import ioio.lib.api.exception.ConnectionLostException;
+import ioio.lib.api.exception.IncompatibilityException;
 
-import com.androbotus.client.robot.modules.SensorModule.Sensors;
+import java.util.Arrays;
+
+import com.androbotus.client.contract.Sensors;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
@@ -54,6 +57,8 @@ public class QuadPwmModuleImpl extends AsyncModule {
 	private boolean started = false;
 	
 	private IOIO ioio;
+	
+	private boolean hasNewValue = false;
 	
 	/**
 	 * 0 - fl; 1 - fr; 2 - ll; 3- lr
@@ -88,10 +93,10 @@ public class QuadPwmModuleImpl extends AsyncModule {
 	protected float[] currentGyro = new float[3];
 	
 	//Constant parameters for PID controller
-	private float pParam = 0.75f;
-	private float iParam = 0.5f;
-	private float dParam = 0.25f;
-	private float iMax = 20f;
+	private float pParam = 0.0f;
+	private float iParam = 0.0f;
+	private float dParam = 0.0f;
+	private float iMax = 0f;
 
 	private float rollCorrectionParam = 1f;
 	private float pitchCorrectionParam = 1f;
@@ -200,6 +205,7 @@ public class QuadPwmModuleImpl extends AsyncModule {
 			return current + inc;
 		}
 	}
+	
 	@Override
 	protected void processMessage(Message message) {
 		if (!isStarted())
@@ -248,18 +254,18 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		} else if (message instanceof SensorMessage){
 			//receive new sensor data
 			SensorMessage sm = (SensorMessage)message;
-			if (Sensors.ROTATION_VECTOR.name().equals(sm.getSensorName())){
-				
+			if (Sensors.ROTATION_ANGLE.getCode() == sm.getSensorCode()){
 				//roll
-				currentOrientation[0] = (Float)sm.getValueMap().get("X");
-				currentOrientation[1] = (Float)sm.getValueMap().get("Y");
-				currentOrientation[2] = (Float)sm.getValueMap().get("Z");	
-			} else if (Sensors.GYRO.name().equals(sm.getSensorName())){
-				
-				currentGyro[0] = (Float)sm.getValueMap().get("X");
-				currentGyro[1] = (Float)sm.getValueMap().get("Y");
-				currentGyro[2] = (Float)sm.getValueMap().get("Z");
+				currentOrientation[0] = sm.getxValue();
+				currentOrientation[1] = sm.getyValue();
+				currentOrientation[2] = sm.getzValue();
+			} else if (Sensors.GYRO.getCode() == sm.getSensorCode()){
+				currentGyro[0] = sm.getxValue();
+				currentGyro[1] = sm.getyValue();
+				currentGyro[2] = sm.getzValue();
 			}
+			
+			hasNewValue = true;
 		} else {
 			return;
 		}
@@ -273,25 +279,48 @@ public class QuadPwmModuleImpl extends AsyncModule {
 			t.interrupt();
 			//reset to set the motors start values
 			reset();
-			for (int i = 0; i < pins.length; i++){
-				//Switched off for testing
-				if (connectIOIO){
-					pwmArray[i] = ioio.openPwmOutput(new DigitalOutput.Spec(pins[i], DigitalOutput.Spec.Mode.OPEN_DRAIN), 100);
-					//pwmArray[i].setPulseWidth(1000);
-					pwmArray[i].setDutyCycle(0);
-					//getLogger().log(LogType.DEBUG, String.format("PWM on PIN %s initialized", pins[i]));
+			//start connect ioio if needed
+			if (connectIOIO){
+				//TODO: this code should be moved to RobotClass
+				try {
+					getLogger().log(LogType.DEBUG, "connecting IOIO..." + ioio.getState().name());
+					ioio.waitForConnect();
+					Thread.sleep(1000);
+					getLogger().log(LogType.DEBUG, "IOIO connected..." + ioio.getState().name());
+				} catch (IncompatibilityException e){
+					getLogger().log(LogType.ERROR, "QuadPWMModule.start(). Can't connect IOIO - incompatible", e);
+				} catch (ConnectionLostException e) {
+					getLogger().log(LogType.ERROR, "QuadPWMModule.start(). Can't connect IOIO - connection lost", e);
 				}
+				if (!ioio.getState().equals(State.CONNECTED)){
+					throw new ConnectionLostException();
+				}
+				Thread.sleep(1000);//give it some time to initialize ioio	
+				for (int i = 0; i < pins.length; i++){					
+					pwmArray[i] = ioio.openPwmOutput(pins[i], 100);
+				}
+				Thread.sleep(1000);//give it some time to initialize all pins
 			}
-			Thread.sleep(2000);//give it some time to initialize all pins
-			getLogger().log(LogType.DEBUG, String.format("All PWM PINs initialized"));
+			getLogger().log(LogType.DEBUG, String.format("The PWM pins %s initialized", Arrays.asList(pins).toString()));
 			started = true;
 			super.start();
 			
 			//start the looper
 			t.start();
 			//start the new thread
-		} catch (Exception e){
-			getLogger().log(LogType.ERROR, "Can't start pwm" , e);
+		} catch (ConnectionLostException e){
+			//This is a temp code... to be moved into logger code
+			StringBuilder sb = new StringBuilder();
+			int i = 0;
+		    for (StackTraceElement element : e.getStackTrace()) {
+		    	if (i == 3)
+		    		break;
+		        sb.append(element.toString());
+		        sb.append("\n");
+		    }
+			getLogger().log(LogType.ERROR, String.format("QuadPWMModule.start(). ioio.getState().name(). Can't start pwm\n%s", sb.toString()), e);
+		} catch (InterruptedException e) {
+			//do nothing
 		}
 	}
 		
@@ -302,7 +331,7 @@ public class QuadPwmModuleImpl extends AsyncModule {
 			for (int i = 0; i < pwmArray.length; i++){
 				if (connectIOIO){
 					pwmArray[i].close();
-				}	
+				}
 			}
 			pwmArray = null;
 		}
@@ -404,24 +433,21 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		float pitchCorrection = pitchCorrectionParam * (pParam * proportional[1] + iParam* integral[1] + dParam*differential[1]);
 		float yawCorrection = yawCorrectionParam * (pParam * proportional[2] + iParam* integral[2] + dParam*differential[2]);
 		
+		//clockwise rotation is positive. Counter-closkwise - negative
 		if (idx == 0){
 			//front left motor
 			
-			//increase for increased roll
-			res += rollCorrection;
-					//pParam * proportional[0] + iParam* integral[0] + dParam*differential[0];
+			//decrease for increased roll
+			res -= rollCorrection;
 			//increase for increased pitch
 			res += pitchCorrection;
-					//pParam * proportional[1] + iParam* integral[1] + dParam*differential[1];
 			//increase for increased yaw
 			res += yawCorrection;
-					//pParam * proportional[2] + iParam* integral[2] + dParam*differential[2];
-			
 		} else if (idx == 1){
 			//front right motor
 			
-			//decrease for increased roll
-			res -= rollCorrection;
+			//increase for increased roll
+			res += rollCorrection;
 			//increase for increased pitch
 			res += pitchCorrection;
 			//decrease for increased yaw
@@ -430,8 +456,8 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		} else if (idx == 2) {
 			//rear left motor
 			
-			//increase for increased roll
-			res += rollCorrection;
+			//decrease for increased roll
+			res -= rollCorrection;
 			//decrease for increased pitch
 			res -= pitchCorrection;
 			//decrease for increased yaw
@@ -440,8 +466,8 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		} else if (idx == 3) {
 			//rear right motor
 
-			//decrease for increased roll
-			res -= rollCorrection;
+			//increase for increased roll
+			res += rollCorrection;
 			//decrease for increased pitch
 			res -= pitchCorrection;
 			//increase for increased yaw
@@ -458,10 +484,19 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		public void run() {
 			while (true) {
 				try {
-					if (pwmArray != null){
-						float dRoll = roll - currentOrientation[0];
-						float dPitch = pitch + currentOrientation[1];//reverse control. This is a temp solution, the proper way is to remap coord system of the sensors
-						float dYaw = yaw - currentOrientation[2];
+					if (pwmArray != null && hasNewValue){
+						/*
+						 *IMPORTANT NOTE:
+						 *
+						 *in the code below following notations are used:
+						 *(-) roll - rotation over X-axis
+						 *(-) pitch - rotation over Y-axis
+						 *(-) yaw - rotation over Z-axis
+						 */
+						
+						float dRoll = currentOrientation[0] - roll ;
+						float dPitch = currentOrientation[1] - pitch;
+						float dYaw = currentOrientation[2] - yaw;
 
 						//get time delta
 						long newTime = System.currentTimeMillis();
@@ -469,8 +504,8 @@ public class QuadPwmModuleImpl extends AsyncModule {
 						time = newTime;
 						
 						//calculate differential first, since it uses proportional to get the prev value 
-						differential[0] = -currentGyro[0];//reverse control. This is a temp solution, the proper way is to remap coord system of the sensors
-						differential[1] = -currentGyro[1];//reverse control. This is a temp solution, the proper way is to remap coord system of the sensors
+						differential[0] = currentGyro[0];
+						differential[1] = currentGyro[1];
 						differential[2] = currentGyro[2];
 						
 						proportional[0] = dRoll;
@@ -478,27 +513,27 @@ public class QuadPwmModuleImpl extends AsyncModule {
 						proportional[2] = dYaw;
 						
 						integral[0] = calculateIntegral(dRoll, integral[0], dTime);
-						integral[1] = calculateIntegral(dRoll, integral[0], dTime);
-						integral[2] = calculateIntegral(dRoll, integral[0], dTime);
+						integral[1] = calculateIntegral(dPitch, integral[1], dTime);
+						integral[2] = calculateIntegral(dYaw, integral[2], dTime);
 						
 						for (int i = 0; i < pwmArray.length; i ++) {
 							float newThrust = calculateNewThrust(i, thrust);
 							//remember thrust value for attitude measuring purposes
 							thrustValues[i] = newThrust;
 							if (connectIOIO){
-								//int newValue = (int) (newThrust*10) + MINVALUE;
-								float newValue = newThrust/100; // normalize it to fit 0 to 1
-								pwmArray[i].setDutyCycle(newValue);
-								//pwmArray[i].setPulseWidth(newValue); //to fit 1000 to 2000 microsec range
+								pwmArray[i].setPulseWidth(1000 + 10 * Math.round(newThrust)); //to fit 1000 to 2000 microsec range
 							}	
 							
 							//getLogger().log(LogType.DEBUG, String.format("New value: pin %s = %s", pin, newValue));
 						}
 					}
-					Thread.sleep(10); //regulate update frequency here, 10ms = 100Hz, just enough for cheap servo/motor
+					hasNewValue = false;
+					Thread.sleep(5); //regulate update frequency here, 10ms = 100Hz, just enough for cheap servo/motor
 				} catch (ConnectionLostException e) {
 					getLogger().log(LogType.ERROR, "Connection to pwm has been lost", e);
-				} catch (Exception e) {
+				} catch (InterruptedException e){
+					//do nothing
+				} catch (Exception e) { 
 					getLogger().log(LogType.ERROR, "Unknown exception in the Looper", e);
 				}
 			}

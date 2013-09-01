@@ -23,19 +23,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.hardware.SensorManager;
+import android.view.SurfaceView;
 
 import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.robot.AbstractRobot;
-import com.androbotus.client.robot.modules.QuadPwmModuleImpl;
 import com.androbotus.client.robot.modules.ReportingQuadPwmModuleImpl;
-import com.androbotus.client.robot.modules.SensorModule;
+import com.androbotus.client.robot.modules.VideoModuleImpl;
+import com.androbotus.client.robot.modules.sensors.SensorModule;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
 
 /**
- * The simple robotic car. This robot has two controls (steering and motor), ultrasonic distance sensor and embedded android sensors. 
+ * The robotic quadcopter. This robot has 4 controls (roll/pitch/yaw/thrust), 4 motors and uses embedded android sensors for stabilization. 
  * @author maximlukichev
  *
  */
@@ -45,30 +46,22 @@ public class RoboticQuadImpl extends AbstractRobot{
 	private IOIO ioio;
 	
 	private SensorManager sensorManager; 
-	private boolean connectIOIO;
+	
+	private SurfaceView parentContext;
 	
 	/**
 	 * Creates quadcopter robot
 	 * @param sensorManager the sensor manager
-	 * @param logger the logger
-	 * 
-	 */
-	//public RoboticQuadImpl(SensorManager sensorManager, Logger logger) {
-	//	this(sensorManager, logger, true);
-	//}
-	
-	/**
-	 * Creates quadcopter robot
-	 * @param sensorManager the sensor manager
+	 * @param parentContext the context for video capturing
 	 * @param logger the logger
 	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
 	 */
-	public RoboticQuadImpl (SensorManager sensorManager, Logger logger, boolean connectIOIO) {
+	public RoboticQuadImpl (SensorManager sensorManager, SurfaceView parentContext, Logger logger) {
 		super(logger);
 		ioio = IOIOFactory.create();
 		this.sensorManager = sensorManager;
 		this.logger = logger;
-		this.connectIOIO = connectIOIO;
+		this.parentContext = parentContext;
 	}
 	
 	@Override
@@ -76,12 +69,15 @@ public class RoboticQuadImpl extends AbstractRobot{
 		List<ModuleEntry> modules = new ArrayList<AbstractRobot.ModuleEntry>();
 		
 		//this is the quadcopter stabilization module, responsible for yaw/pitch/roll stabilization
-		modules.add(new ModuleEntry(new ReportingQuadPwmModuleImpl(ioio, new int[]{3,4,5,6}, 0, logger, connectIOIO), 
+		modules.add(new ModuleEntry(new ReportingQuadPwmModuleImpl(ioio, new int[]{10,11,12,13}, 0, logger, isIOIOEnabled()), 
 				new String[]{Topics.CONTROL.name(), LocalTopics.ROTATION_VECTOR.name(), LocalTopics.GYRO.name()}));
 		
-		//we need to define sensor module
-		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, logger, SensorManager.AXIS_Z, SensorManager.AXIS_MINUS_X), new String[]{Topics.CONTROL.name()}));
-
+		//now define sensor module
+		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, logger), new String[]{Topics.CONTROL.name()}));
+		
+		//add video module. This module will stream video to the server 
+		modules.add(new ModuleEntry(new VideoModuleImpl(parentContext, 10, logger), new String[]{Topics.VIDEO.name()}));
+		
 		//we need this module to be able send messages to the server
 		//modules.add(new ModuleEntry(new RemoteMessageModuleImpl(logger), new String[]{LocalTopics.REMOTE.name()}));
 		
@@ -98,25 +94,11 @@ public class RoboticQuadImpl extends AbstractRobot{
 			logger.log(LogType.ERROR, "Can't redistribute message to " + cname, e);
 		}
 	}
-	
-	@Override
-	public void start() {
-		if (connectIOIO){
-			try {
-				ioio.waitForConnect();
-				logger.log(LogType.DEBUG, "IOIO connected...");
-			} catch (Exception e){
-				logger.log(LogType.ERROR, "Can't establish connection to IOIO", e);
-			}
-		}	
-		//start all the modules
-		super.start();
-	}
 		
 	@Override
 	public void stop() {
 		super.stop();
-		if (connectIOIO){
+		if (isIOIOEnabled()){
 			ioio.disconnect();
 			try {
 				ioio.waitForDisconnect();

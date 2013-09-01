@@ -17,8 +17,6 @@
 package com.androbotus.client;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -33,6 +31,7 @@ import android.content.res.Configuration;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.os.StrictMode;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -40,6 +39,7 @@ import android.view.Menu;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -47,9 +47,9 @@ import android.widget.TextView;
 import com.androbotus.client.contract.LocalAttitudeParameters;
 import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.LoggerMessage;
+import com.androbotus.client.contract.Sensors;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.impl.quad.RoboticQuadImpl;
-import com.androbotus.client.robot.modules.SensorModule.Sensors;
 import com.androbotus.client.streaming.StreamingProcess;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.ControlMessage;
@@ -69,14 +69,15 @@ public class MainActivity extends Activity implements TopicListener{
 	private final static Long REFRESH_RATE = 100L;
 	private final static int CONSOLE_MAX_LINES = 15;
 	
-	private String ipAddress = "192.168.0.106";
+	private String ipAddress = "192.168.0.104";
 	private int brokerPort = 9000;
-	private int videoPort = 9002;
 	
 	private Connection connection;
 	private MessageBroker messageBroker;
 	private StreamingProcess cameraProcess;
 	private AbstractRobot robot;
+	
+	private SensorManager sensorManager;
 	
 	private SurfaceView view;
 	private boolean started = false;
@@ -108,28 +109,37 @@ public class MainActivity extends Activity implements TopicListener{
 	private RunningConsoleLogger runningLogger;
 	
 	private SeekBar seekBarTop;
-	private SeekBar seekBarBottom;
+	//private SeekBar seekBarBottom;
 	
 	public MainActivity() {
 	}	
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
+    	//disable strict mode
+    	StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+    	StrictMode.setThreadPolicy(policy); 
+    	
     	Log.d(TAG, "Creating activity");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         console = (TextView) findViewById(R.id.console);
         
         view = new SurfaceView(this);
+        try {
+        	Thread.sleep(1000); //let the surface initialize
+        } catch (Exception e){
+        	//do nothing
+        }
         //init console logger that will receive console message
         runningLogger = new RunningConsoleLogger();
         runningLogger.start();
         
         //init modules
-        SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         //this.logger = new ConsoleLogger();
-        robot = new RoboticQuadImpl(sensorManager, runningLogger, false);
-                
+        robot = new RoboticQuadImpl(sensorManager, view,  runningLogger);
+        
         final EditText serverAddressField = (EditText) findViewById(R.id.ipAddress);
         serverAddressField.setText(ipAddress);
         serverAddressField.addTextChangedListener(new TextWatcher() {
@@ -172,9 +182,9 @@ public class MainActivity extends Activity implements TopicListener{
         
         //set the initial values for the seek bars
         seekBarTop = (SeekBar)findViewById(R.id.seekBar1);
-        seekBarBottom = (SeekBar)findViewById(R.id.seekBar2);
+        //seekBarBottom = (SeekBar)findViewById(R.id.seekBar2);
         initProgressBar(seekBarTop, 0);
-        initProgressBar(seekBarBottom, 0);
+        //initProgressBar(seekBarBottom, 0);
         
         accelOutput = (TextView) findViewById(R.id.accelOutput);
         gyroOutput = (TextView) findViewById(R.id.gyroOutput);
@@ -207,6 +217,9 @@ public class MainActivity extends Activity implements TopicListener{
     	if (started)
     		return;
 
+    	boolean connectIOIO = ((CheckBox) findViewById(R.id.enableIOIO)).isChecked();
+    	robot.setIOIOEnabled(connectIOIO);
+    	
     	//init message broker
     	try {
     		InetAddress serverAddress = InetAddress.getByName(ipAddress);
@@ -226,20 +239,6 @@ public class MainActivity extends Activity implements TopicListener{
     		writeToConsole("Can't start broker: " + e.getMessage());
     		//messageBroker = new MessageBrokerImpl(new AndroidLogger("Message Broker"));
     		return;
-    	}
-    	
-    	//init camera
-    	if (connection != null){
-    		try {
-    			SocketAddress serverAddress = new InetSocketAddress(InetAddress.getByName(ipAddress), videoPort);
-    			//TODO: change camera process with the CameraModule
-    			//cameraProcess = new CameraProcessImpl(serverAddress, view);
-    			//cameraProcess.start();
-    			Log.d(TAG, "Camera started...");
-    		} catch (UnknownHostException e){
-    			Log.e(TAG, "Can't start video process:", e);
-        		writeToConsole("Can't start video process: " + e.getMessage());
-    		}
     	}
     	
     	//register robot
@@ -331,10 +330,10 @@ public class MainActivity extends Activity implements TopicListener{
             	SeekBar motorBar = (SeekBar)findViewById(R.id.seekBar1);
             	pushBarValue(motorBar, LocalTopics.ESC, motor);
             	break;
-            case R.id.seekBar2:
-            	SeekBar servoBar = (SeekBar)findViewById(R.id.seekBar2);
-            	pushBarValue(servoBar, LocalTopics.SERVO, servo);
-            	break;
+            //case R.id.seekBar2:
+            //	SeekBar servoBar = (SeekBar)findViewById(R.id.seekBar2);
+            //	pushBarValue(servoBar, LocalTopics.SERVO, servo);
+            //	break;
             case R.id.ipAddress:
             	setIpAddress();
             	break;
@@ -378,33 +377,34 @@ public class MainActivity extends Activity implements TopicListener{
     	
     }
     
-    private String prepareSensorOutput(float x, float y, float z, boolean highPrecision){
-    	String ix = formatFloat(x, highPrecision); //leave only 2 digits after dot
-    	String iy = formatFloat(y, highPrecision); //leave only 2 digits after dot
-    	String iz = formatFloat(z, highPrecision); //leave only 2 digits after dot
+    private String buildSensorString(SensorMessage sm, boolean highPrecision){
+    	String ix = formatFloat(sm.getxValue(), highPrecision); //leave only 2 digits after dot
+    	String iy = formatFloat(sm.getyValue(), highPrecision); //leave only 2 digits after dot
+    	String iz = formatFloat(sm.getzValue(), highPrecision); //leave only 2 digits after dot
     	
     	String s = String.format("X:%s  Y:%s  Z:%s", ix, iy, iz);
+    	
     	return s;
     }
     
+    //private static long lastSensorMessageReceived = 0;
+    //private static long smUpdateLatency = 40; //40 ms, to make it 25 fps on the screen
     @Override
     public void receiveMessage(Message message) {
     	if (message instanceof SensorMessage){
     		SensorMessage sm = (SensorMessage)message;
-        	if (sm.getSensorName().equals(Sensors.ACCELERATION.name())){
-        		//Log.e(TAG, "AccelX:" + sm.getValueMap().get("X").toString());
-        		//cache.put(FieldNames.Accel_X.name(), (Float)sm.getValueMap().get("X"));
-        		//cache.put(FieldNames.Accel_Y.name(), (Float)sm.getValueMap().get("Y"));
-        		//cache.put(FieldNames.Accel_Z.name(), (Float)sm.getValueMap().get("Z"));
-        		accelOutput.setText(prepareSensorOutput((Float)sm.getValueMap().get("X"), (Float)sm.getValueMap().get("Y"), (Float)sm.getValueMap().get("Z"), false));
-        	} else if (sm.getSensorName().equals(Sensors.GYRO.name())) {
-        		gyroOutput.setText(prepareSensorOutput((Float)sm.getValueMap().get("X"), (Float)sm.getValueMap().get("Y"), (Float)sm.getValueMap().get("Z"), true));
-        	} else if (sm.getSensorName().equals(Sensors.GRAVITY.name())) {
-        		gravityOutput.setText(prepareSensorOutput((Float)sm.getValueMap().get("X"), (Float)sm.getValueMap().get("Y"), (Float)sm.getValueMap().get("Z"), true));
-        	} else if (sm.getSensorName().equals(Sensors.ROTATION_VECTOR.name())) {
-        		rvectorOutput.setText(prepareSensorOutput((Float)sm.getValueMap().get("X"), (Float)sm.getValueMap().get("Y"), (Float)sm.getValueMap().get("Z"), true));
-        	}		
-		
+    		//if (System.currentTimeMillis() - lastSensorMessageReceived > smUpdateLatency){
+    			if (sm.getSensorCode() == Sensors.ACCELERATION.getCode()){
+    				accelOutput.setText(buildSensorString(sm, false));
+    			} else if (sm.getSensorCode() == Sensors.GYRO.getCode()) {
+    				gyroOutput.setText(buildSensorString(sm, true));
+    			} else if (sm.getSensorCode() == Sensors.GRAVITY.getCode()) {
+    				gravityOutput.setText(buildSensorString(sm, false));
+    			} else if (sm.getSensorCode() == Sensors.ROTATION_ANGLE.getCode()) {
+    				rvectorOutput.setText(buildSensorString(sm, false));
+    			}
+    			//lastSensorMessageReceived = System.currentTimeMillis();
+    		//}
     	} else if (message instanceof AttitudeMessage){
     		AttitudeMessage am = (AttitudeMessage)message;
     		if (am.getParameterMap().get(LocalAttitudeParameters.MOTOR.name()) != null){
@@ -421,7 +421,7 @@ public class MainActivity extends Activity implements TopicListener{
     			//SeekBar sb = (SeekBar)findViewById(R.id.seekBar2);
     	    	//int current = sb.getProgress();
     	    	//int newV = Float.valueOf(servo).intValue();
-    	    	seekBarBottom.setProgress((int)servo);
+    	    	//seekBarBottom.setProgress((int)servo);
     		}
     		if (am.getParameterMap().get(LocalAttitudeParameters.THRUST.name()) != null){
     			thrust = am.getParameterMap().get(LocalAttitudeParameters.THRUST.name());
@@ -438,8 +438,8 @@ public class MainActivity extends Activity implements TopicListener{
     			//SeekBar sb = (SeekBar)findViewById(R.id.seekBar2);
     	    	//int current = sb.getProgress();
     	    	//int newV = Float.valueOf(servo).intValue();
-    	    	seekBarBottom.setProgress((int)roll);
-    	    	seekBarTop.refreshDrawableState();
+    	    	//seekBarBottom.setProgress((int)roll);
+    	    	//seekBarBottom.refreshDrawableState();
     		}
     	} else {
     		Log.e(TAG, "Unacceptable message type");
@@ -503,6 +503,7 @@ public class MainActivity extends Activity implements TopicListener{
     @Override
     protected void onStop() {
     	super.onStop();
+    	//stop();
     }
     
     @Override
@@ -510,27 +511,12 @@ public class MainActivity extends Activity implements TopicListener{
     	super.onResume();
     	if (started)
     		return;
-    	/*if (sensorModule != null){
-    		//sensorModule.handleResume();
-    	}	
-    	if (cameraProcess != null){
-    		//cameraProcess.start();
-    	}*/
-    	//start();
-    	//runTimer(1L);
-    }
+   }
     
     @Override
     protected void onPause() {
     	super.onPause();
-    	/*if (sensorModule != null)
-    		sensorModule.handlePause();
-    		sensorModule.
-    	if (cameraProcess != null){
-    		cameraProcess.stop();
-    	}*/
-    	stop();
-    	
+    	stop();    	
     }
     
     

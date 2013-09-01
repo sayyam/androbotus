@@ -29,7 +29,7 @@ import com.androbotus.client.contract.Topics;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.modules.PwmModuleImpl;
 import com.androbotus.client.robot.modules.ReportingPwmModule;
-import com.androbotus.client.robot.modules.SensorModule;
+import com.androbotus.client.robot.modules.sensors.SensorModule;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
@@ -63,7 +63,7 @@ public class RoboticCarImpl extends AbstractRobot{
 		
 		modules.add(new ModuleEntry(this.servo, new String[]{LocalTopics.SERVO.name()}));
 		modules.add(new ModuleEntry(this.motor, new String[]{LocalTopics.ESC.name()}));
-		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, logger, SensorManager.AXIS_Z, SensorManager.AXIS_MINUS_X), new String[]{Topics.SENSOR.name()}));
+		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, logger), new String[]{Topics.SENSOR.name()}));
 		
 		return modules;
 	}

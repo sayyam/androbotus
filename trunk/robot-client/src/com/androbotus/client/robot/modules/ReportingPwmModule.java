@@ -5,6 +5,7 @@ import ioio.lib.api.IOIO;
 import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.Message;
+import com.androbotus.mq2.core.impl.MessagePoolImpl;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
 
@@ -38,13 +39,13 @@ public class ReportingPwmModule extends PwmModuleImpl{
 	}
 	
 	private void reportAttitude(){
-		AttitudeMessage am = new AttitudeMessage();
-		am.getParameterMap().put(name, getValue());
 		try {
+			AttitudeMessage am = MessagePoolImpl.getInstance().getMessage(AttitudeMessage.class);
+			am.getParameterMap().put(name, getValue());
 			getBroker().pushMessage(LocalTopics.ATTITUDE.name(), am);
 			//getLogger().log(LogType.DEBUG, String.format("%s = %s", name, getValue()));
 		} catch (Exception e){
-			getLogger().log(LogType.ERROR, String.format("Exception logging attitude: %s", e.getMessage()));
+			getLogger().log(LogType.ERROR, String.format("Exception while reporting attitude: %s", e.getMessage()));
 		}
 	}
 }
