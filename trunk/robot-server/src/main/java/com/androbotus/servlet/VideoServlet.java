@@ -19,17 +19,20 @@ package com.androbotus.servlet;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.androbotus.infrastructure.SimpleLogger;
+import com.androbotus.module.VideoModuleImpl;
 import com.androbotus.mq2.contract.CameraMessage;
-import com.androbotus.mq2.core.MessageHandler;
-import com.androbotus.mq2.core.impl.UDPMessageHandlerImpl;
+import com.androbotus.mq2.core.Connection;
+import com.androbotus.mq2.core.MessageBroker;
+import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
+import com.androbotus.mq2.log.Logger;
+import com.androbotus.mq2.log.Logger.LogType;
 
 /**
  * The servlet for handling audio and video streams.
@@ -44,58 +47,47 @@ public class VideoServlet extends HttpServlet {
 	 */
 	private static final long serialVersionUID = -2325118668453694133L;
 	
-	public final static int VIDEO_PORT = 9002;
+	public final static int VIDEO_PORT = 9000;
 	public final static String STREAM_NAME = "video.jpg";
 	/**
 	 * 
 	 */	
+	private final static Logger logger = new SimpleLogger();
 	
-	private DatagramSocket videoSocket;
-	private MessageHandler mh;
+	private MessageBroker messageBroker;
 	private CameraMessage frame;
-	private Thread t;
+	private VideoModuleImpl videoModule;
+	
+	private static Connection connection;
+	
 	
 	@Override
 	public void init() throws ServletException {
-		 try {			 
-			 videoSocket = new DatagramSocket(VIDEO_PORT, InetAddress.getLocalHost());
-			 mh = new UDPMessageHandlerImpl(null, null, videoSocket, false);
-			 t = new Thread(new Runnable() {
-				 public void run() {
-					 while (true){
-						 try {
-							 CameraMessage sm = mh.receiveMessage();
-							 if (!(sm instanceof CameraMessage)){
-								 continue;
-							 }
-							 frame = sm;
-						 } catch (Exception se){
-							 //socket is closed - just wait
-							 //System.out.println(se);
-							 try {
-								 //just sleep for 100ms and then continue accepting video
-								 Thread.sleep(100);
-							 } catch (InterruptedException e){
-								 //do nothing
-							 }
-						 }
-					 }		 
-				 }	
-			 });
-			 t.start();
-		 } catch (Exception e){
-			 throw new ServletException(e);
-		 }
+		try {
+			if (!connection.isOpen()){
+				connection.open();
+			}
+			
+			// TODO: use Log4j logger
+			messageBroker = new RemoteMessageBrokerImpl(connection, logger);
+			
+			messageBroker.start();
+			
+		} catch (Exception e) {
+			throw new ServletException(e);
+		}
 	}
-	 
+	
 	@Override
 	public void destroy() {
 		super.destroy();
 		try {
-			t.interrupt();
-			videoSocket.close();
+			messageBroker.stop();
+			connection.close();
+			// sender.close();
+			// receiver.close();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.log(LogType.ERROR, "Exception while stopping", e);
 		}
 	}
 	
@@ -105,6 +97,7 @@ public class VideoServlet extends HttpServlet {
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException {
+		CameraMessage frame = videoModule.getFrame();
 		if (frame == null)
 			return;
 		byte[] data = frame.getData();

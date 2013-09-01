@@ -29,7 +29,7 @@
 		<url-pattern>/webaccess/*</url-pattern>
 	</servlet-mapping>
 
-	<servlet>
+	<!-- servlet>
 		<servlet-name>video</servlet-name>
 		<servlet-class>com.androbotus.servlet.VideoServlet</servlet-class>
 		<load-on-startup>1</load-on-startup>
@@ -37,6 +37,6 @@
 	<servlet-mapping>
 		<servlet-name>video</servlet-name>
 		<url-pattern>/webvideo</url-pattern>
-	</servlet-mapping>
+	</servlet-mapping-->
 			
 </web-app>

@@ -31,12 +31,14 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.catalina.util.Base64;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.androbotus.contract.Topics;
 import com.androbotus.infrastructure.SimpleLogger;
 import com.androbotus.module.ControlModuleImpl;
 import com.androbotus.mq2.contract.AttitudeMessage;
+import com.androbotus.mq2.contract.CameraMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
 import com.androbotus.mq2.core.Connection;
@@ -50,6 +52,7 @@ import com.androbotus.servlet.contract.Control;
 import com.androbotus.servlet.contract.ControlTypes;
 import com.androbotus.servlet.contract.Sensor;
 import com.androbotus.servlet.contract.Sensors;
+import com.androbotus.servlet.contract.VideoFrame;
 
 /**
  * The main servlet. Serves as a conroller for UI
@@ -60,7 +63,7 @@ import com.androbotus.servlet.contract.Sensors;
 public class ControllerServlet extends HttpServlet {
 
 	public final static int DESTINATION_PORT = 9000;
-	public final static int RECEIVER_PORT = 9001;
+	//public final static int RECEIVER_PORT = 9001;
 	/**
 	 * 
 	 */
@@ -78,11 +81,14 @@ public class ControllerServlet extends HttpServlet {
 	private Map<String, String> sensorData = new HashMap<String, String>();
 	private Map<String, Float> attitudeMap = new HashMap<String, Float>();
 	
+	private byte[] frame;
+	
 	@Override
 	public void init() throws ServletException {
 		try {
 			connection = new TCPLocalConnection(DESTINATION_PORT);
 			connection.open();
+
 			// TODO: use Log4j logger
 			messageBroker = new RemoteMessageBrokerImpl(connection, logger);
 			
@@ -119,8 +125,7 @@ public class ControllerServlet extends HttpServlet {
 	 * GET request is used for getting updates on the sensors states
 	 */
 	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-			throws ServletException, IOException {
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		//logger.log(LogType.DEBUG, req.getRequestURL().toString());
 		String uri = req.getRequestURI();
 		Object res = null;
@@ -144,8 +149,19 @@ public class ControllerServlet extends HttpServlet {
 			att.setAttitudeMap(attitudeMap);
 			
 			res = att;
+		} else if (uri.endsWith("/video")){
+			if (frame != null) {
+				VideoFrame v = new VideoFrame();
+				
+				String b64frame = Base64.encode(frame);
+				v.setData(b64frame);
+				res = v;
+			}
 		}
 
+		if (res == null)
+			return;
+			
 		ObjectMapper om = new ObjectMapper();
 		String s = om.writeValueAsString(res);
 		//logger.log(LogType.DEBUG, s);
@@ -190,27 +206,29 @@ public class ControllerServlet extends HttpServlet {
 		} else if (type == ControlTypes.ACCELERATION) {
 			processIntControlValue(newValue, "ESC");
 		} else if (type == ControlTypes.THRUST) {
-			processIntControlValue(newValue, "THRUST");
+			processIntControlValue(newValue, ControlTypes.THRUST.name());
 		} else if (type == ControlTypes.ROLL) {
-			processIntControlValue(newValue, "ROLL");
+			processIntControlValue(newValue, ControlTypes.ROLL.name());
 		} else if (type == ControlTypes.PITCH) {
-			processIntControlValue(newValue, "PITCH");
+			processIntControlValue(newValue, ControlTypes.PITCH.name());
 		} else if (type == ControlTypes.YAW) {
-			processIntControlValue(newValue, "YAW");
+			processIntControlValue(newValue, ControlTypes.YAW.name());
 		}  else if (type == ControlTypes.PPARAM) {
-			processFloatControlValue(newValue, "PPARAM");
+			processFloatControlValue(newValue, ControlTypes.PPARAM.name());
 		} else if (type == ControlTypes.DPARAM) {
-			processFloatControlValue(newValue, "DPARAM");
+			processFloatControlValue(newValue, ControlTypes.DPARAM.name());
 		} else if (type == ControlTypes.IPARAM) {
-			processFloatControlValue(newValue, "IPARAM");
+			processFloatControlValue(newValue, ControlTypes.IPARAM.name());
 		} else if (type == ControlTypes.IMAX) {
-			processFloatControlValue(newValue, "IMAX");
+			processFloatControlValue(newValue, ControlTypes.IMAX.name());
 		} else if (type == ControlTypes.ROLL_CORR) {
-			processFloatControlValue(newValue, "ROLL_CORR");
+			processFloatControlValue(newValue, ControlTypes.ROLL_CORR.name());
 		} else if (type == ControlTypes.PITCH_CORR) {
-			processFloatControlValue(newValue, "PITCH_CORR");
+			processFloatControlValue(newValue, ControlTypes.PITCH_CORR.name());
 		} else if (type == ControlTypes.YAW_CORR) {
-			processFloatControlValue(newValue, "YAW_CORR");
+			processFloatControlValue(newValue, ControlTypes.YAW_CORR.name());
+		} else if (type == ControlTypes.LOW_PASS_GYRO) {
+			processFloatControlValue(newValue, ControlTypes.LOW_PASS_GYRO.name());
 		} else if (type == ControlTypes.RESET) {
 			processIntControlValue("0", "RESET");
 		} else {
@@ -251,42 +269,14 @@ public class ControllerServlet extends HttpServlet {
 		
 		@Override
 		protected void processMessage(Message message) {
-			//logger.log(LogType.DEBUG, "Message received: " + message.getClass().getSimpleName());
-			if (message instanceof SensorMessage){
-				
-				SensorMessage sm = (SensorMessage) message;
-				Map<String, Object> smValues = sm.getValueMap();
-				if (smValues == null)
-					return;
-			
-				//	translate float sm values to a 2 digit after dot format
-				StringBuffer sb = new StringBuffer();
-				for (String key: smValues.keySet()){
-					sb.append(key);
-					sb.append("=");
-					Object value = smValues.get(key);
-				
-					if (value instanceof Float){
-						Float fv = (Float) value;
-						//keep only 2 digits after dot
-						int intv = (int)(fv * 100); 
-						fv = (float)intv/100f; 
-						sb.append(fv);
-					} else {
-						sb.append(value.toString());
-					}
-				}
-				sensorData.put(sm.getSensorName(), sb.toString());
-			} else if (message instanceof AttitudeMessage){
-				
+			if (message instanceof AttitudeMessage){
 				AttitudeMessage am = (AttitudeMessage)message;
-				
 				for (Map.Entry<String, Float> entry: am.getParameterMap().entrySet()){
 					attitudeMap.put(entry.getKey(), entry.getValue());	
 				}
-				
-				//TODO: this is a temp code just for debugging. To be deleted
-				//logger.log(LogType.DEBUG, "Attitude message received");
+			} else if (message instanceof CameraMessage){
+				CameraMessage cm = (CameraMessage)message;
+				frame = cm.getData();
 			} else {
 				return;
 			}
