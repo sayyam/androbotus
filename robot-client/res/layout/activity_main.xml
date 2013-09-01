@@ -40,6 +40,19 @@
 
     </LinearLayout>
 
+	<LinearLayout
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content" >
+
+		<CheckBox
+		    android:id="@+id/enableIOIO"
+		    android:layout_width="match_parent"
+		    android:layout_height="wrap_content"
+		    android:checked="false"
+		    android:text="@string/enable_ioio"
+		    android:textColor="@android:color/white" />
+
+    </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dip"
@@ -154,7 +167,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <TextView
+        <!-- TextView
             android:id="@+id/textView3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -165,7 +178,7 @@
         <SeekBar
             android:id="@+id/seekBar2"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content" /-->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -175,7 +188,7 @@
             <TextView
                 android:id="@+id/console"
                 android:layout_width="fill_parent"
-                android:layout_height="329dp"
+                android:layout_height="258dp"
                 android:background="@android:color/background_dark"
                 android:ems="10"
                 android:hint="@string/console_output_hint"

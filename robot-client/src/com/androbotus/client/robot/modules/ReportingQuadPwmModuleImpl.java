@@ -7,6 +7,8 @@ import com.androbotus.client.contract.Topics;
 import com.androbotus.client.util.MathUtils;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.Message;
+import com.androbotus.mq2.core.impl.DummyMessagePoolImpl;
+import com.androbotus.mq2.core.impl.MessagePoolImpl;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
@@ -72,8 +74,9 @@ public class ReportingQuadPwmModuleImpl extends QuadPwmModuleImpl{
 		reportAttitude();
 	}
 	
-	private AttitudeMessage createAttitudeMessage() {
-		AttitudeMessage am = new AttitudeMessage();
+	private AttitudeMessage createAttitudeMessage() throws Exception {
+		//TODO: used MessagePool instead of DummyMessagePool
+		AttitudeMessage am = DummyMessagePoolImpl.getInstance().getMessage(AttitudeMessage.class);
 		am.getParameterMap().put(LocalAttitudeParameters.FL.name(), thrustValues[0]);
 		am.getParameterMap().put(LocalAttitudeParameters.FR.name(), thrustValues[1]);
 		am.getParameterMap().put(LocalAttitudeParameters.RL.name(), thrustValues[2]);

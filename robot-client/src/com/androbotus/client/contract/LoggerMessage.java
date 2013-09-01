@@ -35,4 +35,11 @@ public class LoggerMessage implements Message {
 	public LogType getType() {
 		return type;
 	}
+	
+	@Override
+	public void clear() {
+		type = null;
+		message = null;
+		cause = null;
+	}
 }

@@ -14,7 +14,7 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.androbotus.client.util.sensor;
+package com.androbotus.client.robot.modules.sensors.filter;
 
 /**
  * A filter that normalizes gyro data and applies a low-pass filter
@@ -24,7 +24,7 @@ package com.androbotus.client.util.sensor;
  */
 public class GyroFilter {
 	
-	private final static double EPSILON = 0d;
+	private final static double EPSILON = 0.1d;
 	
 	private float gyro[];
 	private float normalizedGyro[];
@@ -38,6 +38,14 @@ public class GyroFilter {
     public GyroFilter(float alpha){
     	this.alpha = alpha;
     }
+    
+    public void setAlpha(float alpha) {
+		this.alpha = Math.min(Math.max(alpha, 0), 1);
+	}
+    
+    public float getAlpha() {
+		return alpha;
+	}
     
     public float[] calculateGyro(float[] values) {
     	//float[] normalizedGyro = calculateNormalizedGyro(values);

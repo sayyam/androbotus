@@ -23,5 +23,6 @@
     <string name="gravityOutputHint">Gravity output</string>
     <string name="rvectorLabel">R.Vector</string>
     <string name="rvectorOutputHint">Rotation Vector Data</string>
+    <string name="enable_ioio">Enable IOIO</string>
 
 </resources>

@@ -44,9 +44,17 @@ public abstract class AbstractRobot extends AbstractModule {
 	 * topic to module map
 	 */
 	private List<ModuleEntry> modules;
-	
+	protected boolean IOIOEnabled;
 	public AbstractRobot (Logger logger) {
 		super(logger);
+	}
+	
+	public void setIOIOEnabled(boolean iOIOEnabled) {
+		IOIOEnabled = iOIOEnabled;
+	}
+	
+	public boolean isIOIOEnabled() {
+		return IOIOEnabled;
 	}
 	
 	/**
