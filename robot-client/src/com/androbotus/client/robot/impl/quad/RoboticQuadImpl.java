@@ -29,8 +29,10 @@ import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.modules.ReportingQuadPwmModuleImpl;
+import com.androbotus.client.robot.modules.VideoModule2Impl;
 import com.androbotus.client.robot.modules.VideoModuleImpl;
 import com.androbotus.client.robot.modules.sensors.SensorModule;
+import com.androbotus.client.util.CameraManager;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
@@ -46,22 +48,21 @@ public class RoboticQuadImpl extends AbstractRobot{
 	private IOIO ioio;
 	
 	private SensorManager sensorManager; 
-	
-	private SurfaceView parentContext;
+	private SurfaceView view;
 	
 	/**
 	 * Creates quadcopter robot
 	 * @param sensorManager the sensor manager
-	 * @param parentContext the context for video capturing
+	 * @param view the SurfaceView for camera initialization
 	 * @param logger the logger
 	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
 	 */
-	public RoboticQuadImpl (SensorManager sensorManager, SurfaceView parentContext, Logger logger) {
+	public RoboticQuadImpl (SensorManager sensorManager, SurfaceView view, Logger logger) {
 		super(logger);
 		ioio = IOIOFactory.create();
 		this.sensorManager = sensorManager;
 		this.logger = logger;
-		this.parentContext = parentContext;
+		this.view = view;
 	}
 	
 	@Override
@@ -76,7 +77,7 @@ public class RoboticQuadImpl extends AbstractRobot{
 		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, logger), new String[]{Topics.CONTROL.name()}));
 		
 		//add video module. This module will stream video to the server 
-		modules.add(new ModuleEntry(new VideoModuleImpl(parentContext, 10, logger), new String[]{Topics.VIDEO.name()}));
+		modules.add(new ModuleEntry(new VideoModuleImpl(view, 50, logger), new String[]{Topics.VIDEO.name()}));
 		
 		//we need this module to be able send messages to the server
 		//modules.add(new ModuleEntry(new RemoteMessageModuleImpl(logger), new String[]{LocalTopics.REMOTE.name()}));
@@ -107,5 +108,10 @@ public class RoboticQuadImpl extends AbstractRobot{
 				logger.log(LogType.ERROR, "Exception while disconnecting from IOIO", e);
 			}
 		}	
-	};	
+	};
+	
+	@Override
+	public void start() {
+		super.start();
+	}
 }

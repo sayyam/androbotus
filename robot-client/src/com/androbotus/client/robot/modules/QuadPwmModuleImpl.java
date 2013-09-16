@@ -274,6 +274,8 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		
 	@Override
 	public void start() {
+		if (isStarted())
+			return;
 		try {
 			//interrupt the old thread
 			t.interrupt();

@@ -29,8 +29,6 @@ import android.view.SurfaceView;
 import com.androbotus.client.streaming.StreamingProcess;
 import com.androbotus.client.util.CameraUtils;
 import com.androbotus.mq2.contract.CameraMessage;
-import com.androbotus.mq2.core.MessageHandler;
-import com.androbotus.mq2.core.impl.UDPMessageHandlerImpl;
 
 /**
  * Streaming process that broadcasts camera output to the server
@@ -53,7 +51,7 @@ public class CameraProcessImpl implements StreamingProcess {
 	private SocketAddress serverAddress;
 	
 	//private Connection connection;
-	private MessageHandler mh;
+	//private MessageHandler mh;
 	private Camera camera;	
 	private int frameCount = 0;
 	//private int packetSent = 0;	
@@ -90,7 +88,7 @@ public class CameraProcessImpl implements StreamingProcess {
         	//serverAddress = InetAddress.getByName(host);
         	socket = new DatagramSocket();
         	
-        	mh = new UDPMessageHandlerImpl(socket, serverAddress, null, true);
+        	//mh = new UDPMessageHandlerImpl(socket, serverAddress, null, true);
         	
         	isRunning = true;
     		camera = Camera.open();        
@@ -175,7 +173,7 @@ public class CameraProcessImpl implements StreamingProcess {
 			cm.setData(data);
 			//Log.d(TAG, "Frame sent: " + frameCount);
 			try {
-				mh.sendMessage(cm);
+				//mh.sendMessage(cm);
 			} catch (Exception e) {	
 				Log.e("UDPUtils", "Exception while sending a packet", e);
 			}
