@@ -40,7 +40,6 @@ import com.androbotus.module.ControlModuleImpl;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.CameraMessage;
 import com.androbotus.mq2.contract.Message;
-import com.androbotus.mq2.contract.SensorMessage;
 import com.androbotus.mq2.core.Connection;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPLocalConnection;
@@ -97,7 +96,7 @@ public class ControllerServlet extends HttpServlet {
 			control.start();
 			
 			MessageReceiver mr = new MessageReceiver(logger);
-			mr.subscribe(messageBroker, Topics.ATTITUDE.name());
+			mr.subscribe(messageBroker, new String[]{Topics.ATTITUDE.name(), Topics.VIDEO.name()});
 			mr.start();
 			
 			messageBroker.start();

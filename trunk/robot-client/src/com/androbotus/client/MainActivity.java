@@ -50,7 +50,7 @@ import com.androbotus.client.contract.LoggerMessage;
 import com.androbotus.client.contract.Sensors;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.impl.quad.RoboticQuadImpl;
-import com.androbotus.client.streaming.StreamingProcess;
+import com.androbotus.client.util.CameraManager;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
@@ -61,6 +61,7 @@ import com.androbotus.mq2.core.TopicListener;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.core.impl.TCPRemoteConnection;
 import com.androbotus.mq2.log.Logger;
+import com.androbotus.mq2.log.Logger.LogType;
 
 public class MainActivity extends Activity implements TopicListener{
 
@@ -74,12 +75,10 @@ public class MainActivity extends Activity implements TopicListener{
 	
 	private Connection connection;
 	private MessageBroker messageBroker;
-	private StreamingProcess cameraProcess;
 	private AbstractRobot robot;
 	
 	private SensorManager sensorManager;
 	
-	private SurfaceView view;
 	private boolean started = false;
 	private TextView console;
 	private List<String> consoleLines = new LinkedList<String>();
@@ -120,25 +119,19 @@ public class MainActivity extends Activity implements TopicListener{
     	StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
     	StrictMode.setThreadPolicy(policy); 
     	
-    	Log.d(TAG, "Creating activity");
+        //init console logger that will receive console message
+        runningLogger = new RunningConsoleLogger();
+        runningLogger.start();
+    	
+    	runningLogger.log(LogType.DEBUG, "Creating activity");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         console = (TextView) findViewById(R.id.console);
         
-        view = new SurfaceView(this);
-        try {
-        	Thread.sleep(1000); //let the surface initialize
-        } catch (Exception e){
-        	//do nothing
-        }
-        //init console logger that will receive console message
-        runningLogger = new RunningConsoleLogger();
-        runningLogger.start();
-        
         //init modules
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        //this.logger = new ConsoleLogger();
-        robot = new RoboticQuadImpl(sensorManager, view,  runningLogger);
+        SurfaceView sv = (SurfaceView)findViewById(R.id.cameraView);
+        robot = new RoboticQuadImpl(sensorManager, sv,  runningLogger);
         
         final EditText serverAddressField = (EditText) findViewById(R.id.ipAddress);
         serverAddressField.setText(ipAddress);
@@ -228,6 +221,7 @@ public class MainActivity extends Activity implements TopicListener{
     		messageBroker = new RemoteMessageBrokerImpl(connection, new AndroidLogger("Message Broker"));;
     				//new MessageBrokerImpl(new AndroidLogger("Message Broker"));new RemoteMessageBrokerImpl(connection, new AndroidLogger("Message Broker"));
     		messageBroker.start();
+    		
     		writeToConsole("Message broker connected...");
     	} catch (UnknownHostException e){
     		Log.e(TAG, "Can't locate server for ip: " + ipAddress, e);
@@ -253,19 +247,15 @@ public class MainActivity extends Activity implements TopicListener{
     	//messageBroker.register(LocalTopics.ORIENTATION.name(), this);
     	messageBroker.register(LocalTopics.ATTITUDE.name(), this);
     	
-    	//messageBroker.register(LocalTopics.LOGGER.name(), this);
-    	started = true;
-    	 
     	//lock the screen
     	wakeLock.acquire();
+    	started = true;
 		return;
 	}
     
     private void stop(){
     	Log.d(TAG, "Stopping the robot...");
     	started = false;
-    	//TODO: refactor module code to get rid of subscribe/unsubscribe methods
-
     	//release the screen lock
     	//try {
     		//wakeLock.release();
@@ -281,9 +271,6 @@ public class MainActivity extends Activity implements TopicListener{
         		Log.e(TAG, "Exception while stopping message broker", e);
         	}
     	}	
-    	if (cameraProcess != null){
-    		cameraProcess.stop();
-    	}
     	if (connection != null){
     		try {
     			connection.close();	
@@ -294,7 +281,6 @@ public class MainActivity extends Activity implements TopicListener{
     	
     	messageBroker = null;
     	connection = null;
-    	cameraProcess = null;
     	writeToConsole("Message Broker stopped...");
     	synchronized (this) {
     		if (wakeLock != null && wakeLock.isHeld()){
@@ -518,8 +504,7 @@ public class MainActivity extends Activity implements TopicListener{
     	super.onPause();
     	stop();    	
     }
-    
-    
+        
     private enum FieldNames {
     	Accel_X, Accel_Y, Accel_Z, 
     	Orient_X, Orient_Y, Orient_Z;

@@ -227,7 +227,7 @@
                     var data = json.data;
                     if (!data)
                         return;
-                    $("video").src = "data:image/jpeg;base64,"+ data;
+                    $("#video").attr("src","data:image/jpeg;base64,"+ data);
                 }
             });
 		}
@@ -412,9 +412,9 @@
 					I: <input id="iparam" type="number" min="0" max="1" step=".01" value="0"/>
 					D: <input id="dparam" type="number" min="0" max="1" step=".01" value=".1"/>
 					IMAX: <input id="imax" type="number" min="0" max="100" value="0"/>
-					Roll-Corr: <input id="rollcorr" type="number" min="0" max="1" step=".1" value=".1"/>  
-					Pitch-Corr: <input id="pitchcorr" type="number" min="0" max="1" step=".1" value=".1"/>  
-					Yaw-Corr: <input id="yawcorr" type="number" min="0" max="1" step=".1" value="0"/>
+					Roll-Corr: <input id="rollcorr" type="number" min="-1" max="1" step=".1" value=".1"/>  
+					Pitch-Corr: <input id="pitchcorr" type="number" min="-1" max="1" step=".1" value=".1"/>  
+					Yaw-Corr: <input id="yawcorr" type="number" min="-1" max="1" step=".1" value="0"/>
 					Gyro-alpha: <input id="gyroalpha" type="number" min="0" max="1" step=".1" value="0.9"/>
 				</div>
 				<div><INPUT id="reset" TYPE=BUTTON OnClick="btnPressed('RESET');" VALUE="RESET"/></div>

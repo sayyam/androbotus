@@ -46,11 +46,21 @@
 
 		<CheckBox
 		    android:id="@+id/enableIOIO"
-		    android:layout_width="match_parent"
+		    android:layout_width="281dp"
 		    android:layout_height="wrap_content"
 		    android:checked="false"
 		    android:text="@string/enable_ioio"
 		    android:textColor="@android:color/white" />
+
+		<SurfaceView
+		    android:id="@+id/cameraView"
+		    android:layout_width="fill_parent"
+		    android:layout_height="fill_parent"
+		    android:focusable="false"
+		    android:paddingBottom="1dp"
+		    android:paddingLeft="5dp"
+		    android:paddingTop="1dp"
+		    android:visibility="visible" />
 
     </LinearLayout>
     <LinearLayout
