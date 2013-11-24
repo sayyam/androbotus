@@ -2,35 +2,28 @@
  *  This file is part of Androbotus project.
  *
  *  Androbotus is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
+ *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  Androbotus is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
+ *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU Lesser General Public License
+ *  You should have received a copy of the GNU General Public License
  *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.androbotus.client.robot.modules;
 
-import ioio.lib.api.IOIO;
-import ioio.lib.api.IOIO.State;
-import ioio.lib.api.PwmOutput;
-import ioio.lib.api.exception.ConnectionLostException;
-import ioio.lib.api.exception.IncompatibilityException;
-
-import java.util.Arrays;
-
 import com.androbotus.client.contract.Sensors;
+import com.androbotus.client.ioio.IOIOContext;
+import com.androbotus.client.ioio.IOIOModule;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.contract.SensorMessage;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
-import com.androbotus.mq2.module.AsyncModule;
 
 /**
  * This module is responsible for controlling flying platform with 4 motors (aka. quadcopter).
@@ -39,7 +32,7 @@ import com.androbotus.mq2.module.AsyncModule;
  * @author maximlukichev
  * 
  */
-public class QuadPwmModuleImpl extends AsyncModule {
+public class QuadPwmModuleImpl extends IOIOModule {
 	private final static String TAG = "MultiPwmModule";
 	private final static int RESOLUTION = 10;	
 	private final static int MINVALUE = 1000;
@@ -50,25 +43,15 @@ public class QuadPwmModuleImpl extends AsyncModule {
 	private final static int PITCH_MAX = 90;
 	private final static int YAW_MIN = -180;
 	private final static int YAW_MAX = 180;
-
-	private boolean connectIOIO;
-	//public final static Float MAXVALUE = 2000f;	
 	
 	private boolean started = false;
 	
-	private IOIO ioio;
+	private float burstFactor = 20f;
+	private long burstExpiresIn = 100;
+	private long rollBurstTime;
+	private long pitchBurstTime;
+	private long yawBurstTime;
 	
-	private boolean hasNewValue = false;
-	
-	/**
-	 * 0 - fl; 1 - fr; 2 - ll; 3- lr
-	 */
-	private PwmOutput[] pwmArray;
-	
-	/**
-	 * 	//0 - fl; 1 - fr; 2 - ll; 3- lr
-	 */
-	private int[] pins;
 	
 	private int startValue;
 	
@@ -76,18 +59,7 @@ public class QuadPwmModuleImpl extends AsyncModule {
 	protected float pitch = 0;
 	protected float yaw = 0;
 	protected float thrust = 0;
-	
-	//protected float sensorRoll = 0;
-	//protected float sensorPitch = 0;
-	//protected float sensorYaw = 0;
-	
-	//private float startRoll;
-	//private float startPitch;
-	//private float startYaw;
-	
-	//protected float[] startQuat = new float[4];
-	//protected float[] currentQuat = new float[4];
-	
+		
 	protected float[] startOrientation = new float[3];
 	protected float[] currentOrientation = new float[3];
 	protected float[] currentGyro = new float[3];
@@ -113,27 +85,23 @@ public class QuadPwmModuleImpl extends AsyncModule {
 	
 	protected float[] thrustValues = new float[]{0,0,0,0};
 	
-	private Thread t;
+	private int rollBurst = 0;
+	private int pitchBurst = 0;
+	private int yawBurst = 0;
+	
+	//private Thread t;
 	/**
 	 * 
-	 * @param ioio the ioio
-	 * @param pins the array of pins to connect to
+	 * @param ioioContext the IOIOContext
 	 * @param logger the logger
 	 * @param startValue between 0 and 100
-	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
 	 */
-	public QuadPwmModuleImpl(IOIO ioio, int[] pins, int startValue, Logger logger, boolean connectIOIO) {
-		super(logger);
-		this.ioio = ioio;
-		if (pins.length != 4)
-			throw new RuntimeException("Must specify 4 pin ids");
-		this.pins = pins;
-		pwmArray = new PwmOutput[pins.length];
+	public QuadPwmModuleImpl(IOIOContext ioioContext, int startValue, Logger logger) {
+		super(ioioContext, logger);		
 		if (!(startValue <= 100 && startValue >= 0))
 			throw new RuntimeException("Start value must be within 0 and 100");
 		this.startValue = startValue;
-		this.connectIOIO = connectIOIO;
-		this.t = new Thread(new Looper());
+		//this.t = new Thread(new Looper());
 	}
 	
 	private void reset(){
@@ -206,8 +174,8 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		}
 	}
 	
-	@Override
-	protected void processMessage(Message message) {
+	
+	private void updateValues(Message message) {
 		if (!isStarted())
 			return;
 		
@@ -250,7 +218,37 @@ public class QuadPwmModuleImpl extends AsyncModule {
 			} else if (controlName.equals("YAW_CORR")) {
 				yawCorrectionParam = cm.getValue();
 				getLogger().log(LogType.DEBUG, String.format("Yaw correction: %s", yawCorrectionParam));
-			}
+			} else if (controlName.equals("BURST")){
+				burstFactor = cm.getValue();
+				getLogger().log(LogType.DEBUG, String.format("Burst factor: %s", burstFactor));
+			} else if (controlName.equals("BURST_DURATION")){
+				burstExpiresIn = (long)cm.getValue();
+				getLogger().log(LogType.DEBUG, String.format("Burst factor: %s", burstFactor));
+			} else if (controlName.equals("ROLL_BURST")){
+				if (cm.getValue() > 0){
+					rollBurst = 1;
+				} else {
+					rollBurst = -1;
+				}
+				rollBurstTime = System.currentTimeMillis();
+				getLogger().log(LogType.DEBUG, String.format("Burst roll: %s", rollBurst));
+			} else if (controlName.equals("PITCH_BURST")){
+				if (cm.getValue() > 0){
+					pitchBurst = 1;
+				} else {
+					pitchBurst = -1;
+				}
+				pitchBurstTime = System.currentTimeMillis();
+				getLogger().log(LogType.DEBUG, String.format("Burst pitch: %s", pitchBurst));
+			}else if (controlName.equals("YAW_BURST")){
+				if (cm.getValue() > 0){
+					yawBurst = 1;
+				} else {
+					yawBurst = -1;
+				}
+				yawBurstTime = System.currentTimeMillis();
+				getLogger().log(LogType.DEBUG, String.format("Burst yaw: %s", yawBurst));
+			} 
 		} else if (message instanceof SensorMessage){
 			//receive new sensor data
 			SensorMessage sm = (SensorMessage)message;
@@ -264,53 +262,59 @@ public class QuadPwmModuleImpl extends AsyncModule {
 				currentGyro[1] = sm.getyValue();
 				currentGyro[2] = sm.getzValue();
 			}
-			
-			hasNewValue = true;
 		} else {
 			return;
 		}
 		
 	}	
+	
+	@Override
+	protected void processMessage(Message message) {
+		updateValues(message);
+		processValues();
+	}
+	
+	private boolean pinsBound = false;
+	@Override
+	public void looperConnected() {
+		try {
+			//	start connect ioio if needed
+			if (getContext().getLooper() == null){
+				throw new Exception("IOIOLooper is not initialized yet. Can't start the robot");
+			}
 		
+			getContext().getLooper().bind("FL", 10);
+			getContext().getLooper().bind("FR", 11);
+			getContext().getLooper().bind("RL", 12);
+			getContext().getLooper().bind("RR", 13);
+			getLogger().log(LogType.DEBUG, String.format("QuadPWMModule: pins [%s,%s,%s,%s] connected", 10,11,12,13));
+			
+			pinsBound = true;
+		} catch (Exception e) {
+			getLogger().log(LogType.ERROR, "QuadPWMModule: " + e.getMessage());
+		}
+	}
+	
+	@Override
+	public void looperDisconnected() {
+		pinsBound = false;
+		getLogger().log(LogType.DEBUG, String.format("QuadPWMModule: all pins disconnected"));
+	}
+	
 	@Override
 	public void start() {
 		if (isStarted())
 			return;
 		try {
 			//interrupt the old thread
-			t.interrupt();
+			//t.interrupt();
 			//reset to set the motors start values
-			reset();
-			//start connect ioio if needed
-			if (connectIOIO){
-				//TODO: this code should be moved to RobotClass
-				try {
-					getLogger().log(LogType.DEBUG, "connecting IOIO..." + ioio.getState().name());
-					ioio.waitForConnect();
-					Thread.sleep(1000);
-					getLogger().log(LogType.DEBUG, "IOIO connected..." + ioio.getState().name());
-				} catch (IncompatibilityException e){
-					getLogger().log(LogType.ERROR, "QuadPWMModule.start(). Can't connect IOIO - incompatible", e);
-				} catch (ConnectionLostException e) {
-					getLogger().log(LogType.ERROR, "QuadPWMModule.start(). Can't connect IOIO - connection lost", e);
-				}
-				if (!ioio.getState().equals(State.CONNECTED)){
-					throw new ConnectionLostException();
-				}
-				Thread.sleep(1000);//give it some time to initialize ioio	
-				for (int i = 0; i < pins.length; i++){					
-					pwmArray[i] = ioio.openPwmOutput(pins[i], 100);
-				}
-				Thread.sleep(1000);//give it some time to initialize all pins
-			}
-			getLogger().log(LogType.DEBUG, String.format("The PWM pins %s initialized", Arrays.asList(pins).toString()));
+			reset();		
 			started = true;
-			super.start();
-			
+			super.start();		
 			//start the looper
-			t.start();
-			//start the new thread
-		} catch (ConnectionLostException e){
+			//t.start();
+		} catch (Exception e){
 			//This is a temp code... to be moved into logger code
 			StringBuilder sb = new StringBuilder();
 			int i = 0;
@@ -321,22 +325,12 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		        sb.append("\n");
 		    }
 			getLogger().log(LogType.ERROR, String.format("QuadPWMModule.start(). ioio.getState().name(). Can't start pwm\n%s", sb.toString()), e);
-		} catch (InterruptedException e) {
-			//do nothing
-		}
+		} 
 	}
 		
 	@Override
 	public void stop() {
-		t.interrupt();
-		if (pwmArray != null){
-			for (int i = 0; i < pwmArray.length; i++){
-				if (connectIOIO){
-					pwmArray[i].close();
-				}
-			}
-			pwmArray = null;
-		}
+		//t.interrupt();
 		started = false;
 		super.stop();
 	};
@@ -431,9 +425,9 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		if (thrust == 0)
 			return 0;
 		
-		float rollCorrection = rollCorrectionParam * (pParam * proportional[0] + iParam* integral[0] + dParam*differential[0]);
-		float pitchCorrection = pitchCorrectionParam * (pParam * proportional[1] + iParam* integral[1] + dParam*differential[1]);
-		float yawCorrection = yawCorrectionParam * (pParam * proportional[2] + iParam* integral[2] + dParam*differential[2]);
+		float rollCorrection = rollCorrectionParam * (pParam * proportional[0] + iParam* integral[0] + dParam*differential[0] + rollBurst*burstFactor);
+		float pitchCorrection = pitchCorrectionParam * (pParam * proportional[1] + iParam* integral[1] + dParam*differential[1] + pitchBurst*burstFactor);
+		float yawCorrection = yawCorrectionParam * (pParam * proportional[2] + iParam* integral[2] + dParam*differential[2] + yawBurst*burstFactor);
 		
 		//clockwise rotation is positive. Counter-closkwise - negative
 		if (idx == 0){
@@ -481,65 +475,81 @@ public class QuadPwmModuleImpl extends AsyncModule {
 		return Math.min(Math.max(res, 0), 100);
 	}
 	
-	private class Looper implements Runnable {
-		@Override
-		public void run() {
-			while (true) {
-				try {
-					if (pwmArray != null && hasNewValue){
-						/*
-						 *IMPORTANT NOTE:
-						 *
-						 *in the code below following notations are used:
-						 *(-) roll - rotation over X-axis
-						 *(-) pitch - rotation over Y-axis
-						 *(-) yaw - rotation over Z-axis
-						 */
-						
-						float dRoll = currentOrientation[0] - roll ;
-						float dPitch = currentOrientation[1] - pitch;
-						float dYaw = currentOrientation[2] - yaw;
+	private boolean firstIOIOSignal = true;
+	private void processValues() {
+		/*
+		 *IMPORTANT NOTE:
+		 *
+		 *in the code below following notations are used:
+		 *(-) roll - rotation over X-axis
+		 *(-) pitch - rotation over Y-axis
+		 *(-) yaw - rotation over Z-axis
+		 */
+		
+		float dRoll = currentOrientation[0] - roll ;
+		float dPitch = currentOrientation[1] - pitch;
+		float dYaw = currentOrientation[2] - yaw;
 
-						//get time delta
-						long newTime = System.currentTimeMillis();
-						long dTime = newTime - time;
-						time = newTime;
-						
-						//calculate differential first, since it uses proportional to get the prev value 
-						differential[0] = currentGyro[0];
-						differential[1] = currentGyro[1];
-						differential[2] = currentGyro[2];
-						
-						proportional[0] = dRoll;
-						proportional[1] = dPitch;
-						proportional[2] = dYaw;
-						
-						integral[0] = calculateIntegral(dRoll, integral[0], dTime);
-						integral[1] = calculateIntegral(dPitch, integral[1], dTime);
-						integral[2] = calculateIntegral(dYaw, integral[2], dTime);
-						
-						for (int i = 0; i < pwmArray.length; i ++) {
-							float newThrust = calculateNewThrust(i, thrust);
-							//remember thrust value for attitude measuring purposes
-							thrustValues[i] = newThrust;
-							if (connectIOIO){
-								pwmArray[i].setPulseWidth(1000 + 10 * Math.round(newThrust)); //to fit 1000 to 2000 microsec range
-							}	
-							
-							//getLogger().log(LogType.DEBUG, String.format("New value: pin %s = %s", pin, newValue));
-						}
-					}
-					hasNewValue = false;
-					Thread.sleep(5); //regulate update frequency here, 10ms = 100Hz, just enough for cheap servo/motor
-				} catch (ConnectionLostException e) {
-					getLogger().log(LogType.ERROR, "Connection to pwm has been lost", e);
-				} catch (InterruptedException e){
-					//do nothing
-				} catch (Exception e) { 
-					getLogger().log(LogType.ERROR, "Unknown exception in the Looper", e);
-				}
+		//get time delta
+		long newTime = System.currentTimeMillis();
+		long dTime = newTime - time;
+		time = newTime;
+		
+		//calculate differential first, since it uses proportional to get the prev value 
+		differential[0] = currentGyro[0];
+		differential[1] = currentGyro[1];
+		differential[2] = currentGyro[2];
+		
+		proportional[0] = dRoll;
+		proportional[1] = dPitch;
+		proportional[2] = dYaw;
+				
+		integral[0] = calculateIntegral(dRoll, integral[0], dTime);
+		integral[1] = calculateIntegral(dPitch, integral[1], dTime);
+		integral[2] = calculateIntegral(dYaw, integral[2], dTime);
+		
+		for (int i = 0; i < 4; i ++) {
+			float newThrust = calculateNewThrust(i, thrust);
+			//remember thrust value for attitude measuring purposes
+			thrustValues[i] = newThrust;
+		}
+		resetBurst();
+		
+		if (started  
+				&& getContext().getLooper() != null && getContext().getLooper().isConnected() //ioio has to be connected 
+				&& pinsBound //all pins should be ready 
+				)
+		{
+			int fl = 1000 + 10 * Math.round(thrustValues[0]);
+			getContext().getLooper().setValue("FL", fl);
+			
+			int fr = 1000 + 10 * Math.round(thrustValues[1]);
+			getContext().getLooper().setValue("FR", fr);
+			
+			int rl = 1000 + 10 * Math.round(thrustValues[2]);
+			getContext().getLooper().setValue("RL", rl);
+			
+			int rr = 1000 + 10 * Math.round(thrustValues[3]);
+			getContext().getLooper().setValue("RR", rr);
+			
+			if (firstIOIOSignal){
+				getLogger().log(LogType.DEBUG, "QuadPwmModule: IOIO signals - succeded");
+				firstIOIOSignal = false;
 			}
 		}
+	}
+	
+	private void resetBurst(){
+		//if burst expired set it to 0
+		if (rollBurstTime + burstExpiresIn < System.currentTimeMillis()){
+			rollBurst = 0;	
+		}
+		if (pitchBurstTime + burstExpiresIn < System.currentTimeMillis()){
+			pitchBurst = 0;
+		}
+		if (yawBurstTime + burstExpiresIn < System.currentTimeMillis()){
+			yawBurst = 0;
+		}	
 	}
 	
 }

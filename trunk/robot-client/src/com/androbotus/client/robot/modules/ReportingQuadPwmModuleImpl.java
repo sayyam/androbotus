@@ -1,14 +1,27 @@
+/**
+ *  This file is part of Androbotus project.
+ *
+ *  Androbotus is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Androbotus is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package com.androbotus.client.robot.modules;
-
-import ioio.lib.api.IOIO;
 
 import com.androbotus.client.contract.LocalAttitudeParameters;
 import com.androbotus.client.contract.Topics;
-import com.androbotus.client.util.MathUtils;
+import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.core.impl.DummyMessagePoolImpl;
-import com.androbotus.mq2.core.impl.MessagePoolImpl;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
@@ -27,7 +40,6 @@ public class ReportingQuadPwmModuleImpl extends QuadPwmModuleImpl{
 	 */
 	private final static int MESSAGE_LATENCY = 50;
 	
-	private String name;
 	private long time = System.currentTimeMillis();
 
 	/*
@@ -44,27 +56,23 @@ public class ReportingQuadPwmModuleImpl extends QuadPwmModuleImpl{
 	
 	/**
 	 * Creates reporting pwm module for quadcopter
-	 * @param ioio the ioio instance
-	 * @param pins the array of pins to connect to
+	 * @param ioioContext the ioioContext instance
 	 * @param startValue the initial value to be set to pwm whenever the module starts
-	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
 	 * @param logger the logger
 	 */
-	public ReportingQuadPwmModuleImpl(IOIO ioio, int[] pins, String name, int startValue, Logger logger, boolean connectIOIO) {
-		super(ioio, pins, startValue, logger, connectIOIO);
-		this.name = name;
+	public ReportingQuadPwmModuleImpl(IOIOContext ioioContext, String name, int startValue, Logger logger) {
+		super(ioioContext, startValue, logger);
+		//this.name = name;
 	}
 
 	/**
 	 * Creates reporting pwm module for quadcopter
-	 * @param ioio the ioio instance
-	 * @param pins the array of pins to connect to
-	 * @param startValue the initial value to be set to pwm whenever the module starts
-	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
+	 * @param ioioContext the ioioContext instance
+	 * @param startValue the initial value to be set to pwm whenever the module starts 
 	 * @param logger the logger
 	 */
-	public ReportingQuadPwmModuleImpl(IOIO ioio, int[] pins, int startValue, Logger logger, boolean connectIOIO) {
-		this(ioio, pins, "QuadModle" ,startValue ,logger, connectIOIO);
+	public ReportingQuadPwmModuleImpl(IOIOContext ioioContext, int startValue, Logger logger) {
+		this(ioioContext, "QuadModle" ,startValue ,logger);
 		
 	}
 	

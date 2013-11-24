@@ -2,22 +2,19 @@
  *  This file is part of Androbotus project.
  *
  *  Androbotus is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
+ *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  Androbotus is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
+ *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU Lesser General Public License
+ *  You should have received a copy of the GNU General Public License
  *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.androbotus.client.robot.impl.quad;
-
-import ioio.lib.api.IOIO;
-import ioio.lib.api.IOIOFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,12 +24,11 @@ import android.view.SurfaceView;
 
 import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.Topics;
+import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.modules.ReportingQuadPwmModuleImpl;
-import com.androbotus.client.robot.modules.VideoModule2Impl;
 import com.androbotus.client.robot.modules.VideoModuleImpl;
 import com.androbotus.client.robot.modules.sensors.SensorModule;
-import com.androbotus.client.util.CameraManager;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
@@ -43,9 +39,6 @@ import com.androbotus.mq2.log.Logger.LogType;
  *
  */
 public class RoboticQuadImpl extends AbstractRobot{
-	private Logger logger; 
-	
-	private IOIO ioio;
 	
 	private SensorManager sensorManager; 
 	private SurfaceView view;
@@ -57,11 +50,9 @@ public class RoboticQuadImpl extends AbstractRobot{
 	 * @param logger the logger
 	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
 	 */
-	public RoboticQuadImpl (SensorManager sensorManager, SurfaceView view, Logger logger) {
-		super(logger);
-		ioio = IOIOFactory.create();
+	public RoboticQuadImpl (SensorManager sensorManager, SurfaceView view, IOIOContext ioioContext, Logger logger) {
+		super(ioioContext, logger);
 		this.sensorManager = sensorManager;
-		this.logger = logger;
 		this.view = view;
 	}
 	
@@ -70,14 +61,17 @@ public class RoboticQuadImpl extends AbstractRobot{
 		List<ModuleEntry> modules = new ArrayList<AbstractRobot.ModuleEntry>();
 		
 		//this is the quadcopter stabilization module, responsible for yaw/pitch/roll stabilization
-		modules.add(new ModuleEntry(new ReportingQuadPwmModuleImpl(ioio, new int[]{10,11,12,13}, 0, logger, isIOIOEnabled()), 
+		modules.add(new ModuleEntry(new ReportingQuadPwmModuleImpl(getIoioContext(), 0, getLogger()), 
 				new String[]{Topics.CONTROL.name(), LocalTopics.ROTATION_VECTOR.name(), LocalTopics.GYRO.name()}));
 		
 		//now define sensor module
-		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, logger), new String[]{Topics.CONTROL.name()}));
+		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, getLogger()), new String[]{Topics.CONTROL.name()}));
 		
 		//add video module. This module will stream video to the server 
-		modules.add(new ModuleEntry(new VideoModuleImpl(view, 50, logger), new String[]{Topics.VIDEO.name()}));
+		modules.add(new ModuleEntry(new VideoModuleImpl(view, 50, getLogger()), new String[]{Topics.VIDEO.name()}));
+		
+		//add radar module to track and avoid obstacles
+		//modules.add(new ModuleEntry(new RadarModule(ioio, 1, new int[]{6}, new int[]{7}, new int[]{8}, 10, getLogger(), isIOIOEnabled()), new String[]{Topics.CONTROL.name()}));
 		
 		//we need this module to be able send messages to the server
 		//modules.add(new ModuleEntry(new RemoteMessageModuleImpl(logger), new String[]{LocalTopics.REMOTE.name()}));
@@ -92,26 +86,7 @@ public class RoboticQuadImpl extends AbstractRobot{
 			//TODO: there are no supported control messages yet, this is just quick and dirty shortcut
 			//However translation of the server commands should happen here and then another control message should be sent to a processing module
 		} catch (Exception e){
-			logger.log(LogType.ERROR, "Can't redistribute message to " + cname, e);
+			getLogger().log(LogType.ERROR, "Can't redistribute message to " + cname, e);
 		}
-	}
-		
-	@Override
-	public void stop() {
-		super.stop();
-		if (isIOIOEnabled()){
-			ioio.disconnect();
-			try {
-				ioio.waitForDisconnect();
-				logger.log(LogType.DEBUG, "IOIO disconnected...");
-			} catch (Exception e ) {
-				logger.log(LogType.ERROR, "Exception while disconnecting from IOIO", e);
-			}
-		}	
-	};
-	
-	@Override
-	public void start() {
-		super.start();
 	}
 }
