@@ -58,19 +58,19 @@
 				}	
 				if (code == 'Left'){
 					//roll left
-					type = 'ROLL';
+					type = 'ROLL_BURST';
 					value = -1;
 				} else if (code == 'Right' ) {
 					//roll right
-					type = 'ROLL';
+					type = 'ROLL_BURST';
 					value = 1;
 				} else if (code == 'Up') {
 					//nose down
-					type = 'PITCH';
+					type = 'PITCH_BURST';
 					value = -1;
 				} else if (code == 'Down') {
 					//nose up
-					type = 'PITCH';
+					type = 'PITCH_BURST';
 					value = 1;
 				} else if (code == 'W') {
 					//thrust up
@@ -82,13 +82,38 @@
 					value = -1;
 				} else if (code == 'A') {
 					//yaw left
-					type = 'YAW';
+					type = 'YAW_BURST';
 					value = -1;
 				} else if (code == 'D') {
 					//yaw right
+					type = 'YAW_BURST';
+					value = 1;
+				} else if (code == 'trimLeft') {
+					//trim roll left
+					type = 'ROLL';
+					value = -1;
+				} else if (code == 'trimRight') {
+					//trim roll right
+					type = 'ROLL';
+					value = 1;
+				} else if (code == 'trimForward') {
+					//trim pitch forward: nose down
+					type = 'PITCH';
+					value = -1;
+				} else if (code == 'trimBackward') {
+					//trim pitch backward: nose up
+					type = 'PITCH';
+					value = 1;
+				} else if (code == 'trimYawLeft') {
+					//trim yaw left
+					type = 'YAW';
+					value = -1;
+				} else if (code == 'trimYawRight') {
+					//trim yaw right
 					type = 'YAW';
 					value = 1;
-				} else {
+				} 
+				else {
 				    //for all other cases send the same type as the code
 				    type = code;
 				}
@@ -125,7 +150,7 @@
 			
 			//hook up listener for the control inputs
 			document.addEventListener('keydown', function(event) {
-   			if(event.keyCode == 37) {
+   				if(event.keyCode == 37) {
         			keyBtnPressed('leftBtn');
     			} else if(event.keyCode == 39) {
         			keyBtnPressed('rightBtn');
@@ -141,6 +166,24 @@
 	    			btnPressed('D');
     			} else if (event.keyCode == 83) {
 	    			btnPressed('S');
+    			} else if (event.keyCode == 80) {
+    				//P
+	    			btnPressed('trimForward');
+    			} else if (event.keyCode == 186) {
+    				//;
+	    			btnPressed('trimBackward');
+    			} else if (event.keyCode == 76) {
+    				//L
+	    			btnPressed('trimLeft');
+    			} else if (event.keyCode == 222) {
+    				//'
+	    			btnPressed('trimRight');
+    			} else if (event.keyCode == 188) {
+    				//<
+	    			btnPressed('trimYawLeft');
+    			} else if (event.keyCode == 188) {
+    				//>
+	    			btnPressed('trimYawRight');
     			}
 			});			
 			
@@ -323,6 +366,8 @@
             var pitchcorr = $("#pitchcorr");
             var yawcorr = $("#yawcorr");
             var gyroalpha = $("#gyroalpha");
+            var burst = $("#burst");
+            var burstDuration = $("#burstDuration");
 			
             pparam.bind('click', function(){postParameter('PPARAM', pparam);});
             iparam.bind('click', function(){postParameter('IPARAM', iparam);});
@@ -332,7 +377,9 @@
             pitchcorr.bind('click', function(){postParameter('PITCH_CORR', pitchcorr);});
             yawcorr.bind('click', function(){postParameter('YAW_CORR', yawcorr);});
             gyroalpha.bind('click', function(){postParameter('LOW_PASS_GYRO', gyroalpha);});
-
+			burst.bind('click', function(){postParameter('BURST', burst);});
+			burstDuration.bind('click', function(){postParameter('BURST_DURATION', burstDuration);});
+			
             //init all the parameters
             //postParameter('PPARAM', pparam);
             //postParameter('IPARAM', iparam);
@@ -408,16 +455,24 @@
 			</table>			
 			<div>	
 				<div>
-					P: <input id="pparam" type="number" min="0" max="1" step=".01" value=".1"/>  
-					I: <input id="iparam" type="number" min="0" max="1" step=".01" value="0"/>
-					D: <input id="dparam" type="number" min="0" max="1" step=".01" value=".1"/>
-					IMAX: <input id="imax" type="number" min="0" max="100" value="0"/>
-					Roll-Corr: <input id="rollcorr" type="number" min="-1" max="1" step=".1" value=".1"/>  
-					Pitch-Corr: <input id="pitchcorr" type="number" min="-1" max="1" step=".1" value=".1"/>  
-					Yaw-Corr: <input id="yawcorr" type="number" min="-1" max="1" step=".1" value="0"/>
-					Gyro-alpha: <input id="gyroalpha" type="number" min="0" max="1" step=".1" value="0.9"/>
+					<div>
+						P: <input id="pparam" type="number" min="0" max="1" step=".01" value=".1"/>  
+						I: <input id="iparam" type="number" min="0" max="1" step=".01" value="0"/>
+						D: <input id="dparam" type="number" min="0" max="1" step=".01" value=".1"/>
+						IMAX: <input id="imax" type="number" min="0" max="100" value="0"/>
+					</div>
+					<div>
+						Roll-Corr: <input id="rollcorr" type="number" min="-1" max="1" step=".1" value=".1"/>  
+						Pitch-Corr: <input id="pitchcorr" type="number" min="-1" max="1" step=".1" value=".1"/>  
+						Yaw-Corr: <input id="yawcorr" type="number" min="-1" max="1" step=".1" value="0"/>
+						Gyro-alpha: <input id="gyroalpha" type="number" min="0" max="1" step=".1" value="0.9"/>
+					</div>
+					<div>	
+						Burst: <input id="burst" type="number" min="-100" max="100" step="1" value="0"/>
+						Burst Duration: <input id="burstDuration" type="number" min="0" max="1000" step="50" value="0"/>
+					</div>	
 				</div>
-				<div><INPUT id="reset" TYPE=BUTTON OnClick="btnPressed('RESET');" VALUE="RESET"/></div>
+				<div><input id="reset" type=BUTTON OnClick="btnPressed('RESET');" VALUE="RESET"/></div>
 				<span>
 					<textarea id="log" lines="15" col="20">Output log</textarea>
 				</span>	
