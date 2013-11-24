@@ -14,23 +14,27 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.androbotus.client.streaming;
+package com.androbotus.client.ioio;
+
+import com.androbotus.mq2.log.Logger;
+import com.androbotus.mq2.module.AbstractModule;
 
 /**
- * A basic interface for streaming processes, such as streaming camera video to the server
- * 
+ * A module that controls external devices via IOIO
  * @author maximlukichev
  *
  */
-public interface StreamingProcess {
+public abstract class IOIOModule extends AbstractModule implements IOIOLooperListsener {
+	private IOIOContext ioioContext;
 	
-	/**
-	 * Start the process
-	 */
-	public void start();
+	public IOIOModule(IOIOContext context, Logger logger){
+		super(logger);
+		this.ioioContext = context;
+		context.registerIOIOListener(this);
+	}
 	
-	/**
-	 * Stop the process
-	 */
-	public void stop();
+	public IOIOContext getContext() {
+		return ioioContext;
+	}
+	
 }

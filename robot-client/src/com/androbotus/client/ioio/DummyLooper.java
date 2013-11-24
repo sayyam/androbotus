@@ -14,23 +14,26 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.androbotus.client.streaming;
+package com.androbotus.client.ioio;
 
-/**
- * A basic interface for streaming processes, such as streaming camera video to the server
- * 
- * @author maximlukichev
- *
- */
-public interface StreamingProcess {
+import ioio.lib.api.IOIO;
+import ioio.lib.api.exception.ConnectionLostException;
+import ioio.lib.util.IOIOLooper;
+
+public class DummyLooper implements IOIOLooper {
+	@Override
+	public void disconnected() {
+	}
 	
-	/**
-	 * Start the process
-	 */
-	public void start();
+	@Override
+	public void incompatible() {
+	}
+
+	@Override
+	public void loop() throws ConnectionLostException, InterruptedException {
+	}
 	
-	/**
-	 * Stop the process
-	 */
-	public void stop();
+	@Override
+	public void setup(IOIO ioio) throws ConnectionLostException ,InterruptedException {
+	};
 }

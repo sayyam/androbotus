@@ -1,3 +1,19 @@
+/**
+ *  This file is part of Androbotus project.
+ *
+ *  Androbotus is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Androbotus is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package com.androbotus.client.robot.modules;
 
 import java.io.ByteArrayOutputStream;
@@ -8,7 +24,6 @@ import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.PreviewCallback;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
 
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.util.CameraUtils;

@@ -1,8 +1,23 @@
+/**
+ *  This file is part of Androbotus project.
+ *
+ *  Androbotus is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Androbotus is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package com.androbotus.client.robot.modules;
 
-import ioio.lib.api.IOIO;
-
 import com.androbotus.client.contract.LocalTopics;
+import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.core.impl.MessagePoolImpl;
@@ -27,8 +42,8 @@ public class ReportingPwmModule extends PwmModuleImpl{
 	 * @param startValue the initial value to be set to pwm whenever the module starts
 	 * @param logger the logger
 	 */
-	public ReportingPwmModule(IOIO ioio, int pin, String name, int startValue, Logger logger) {
-		super(ioio, pin, startValue, logger);
+	public ReportingPwmModule(IOIOContext context, int pin, String name, int startValue, Logger logger) {
+		super(context, pin, startValue, logger);
 		this.name = name;
 	}
 	

@@ -14,23 +14,23 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.androbotus.client.streaming;
+package com.androbotus.client.ioio;
+
+import ioio.lib.util.IOIOLooper;
 
 /**
- * A basic interface for streaming processes, such as streaming camera video to the server
- * 
+ * A listener for connect/disconnect actions on the {@link IOIOLooper}
  * @author maximlukichev
  *
  */
-public interface StreamingProcess {
+public interface IOIOLooperListsener {
+	/**
+	 * Called when connection with IOIO is established
+	 */
+	public void looperConnected();
 	
 	/**
-	 * Start the process
+	 * Called when connection with IOIO is closed
 	 */
-	public void start();
-	
-	/**
-	 * Stop the process
-	 */
-	public void stop();
+	public void looperDisconnected();
 }

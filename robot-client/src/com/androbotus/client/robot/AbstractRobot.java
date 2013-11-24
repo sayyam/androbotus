@@ -2,16 +2,16 @@
  *  This file is part of Androbotus project.
  *
  *  Androbotus is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
+ *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  Androbotus is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
+ *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU Lesser General Public License
+ *  You should have received a copy of the GNU General Public License
  *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.androbotus.client.robot;
@@ -19,13 +19,13 @@ package com.androbotus.client.robot;
 import java.util.Arrays;
 import java.util.List;
 
+import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
 import com.androbotus.mq2.core.MessageBroker;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
 import com.androbotus.mq2.module.AbstractModule;
-import com.androbotus.mq2.module.AsyncModule;
 import com.androbotus.mq2.module.Module;
 
 /**
@@ -44,18 +44,26 @@ public abstract class AbstractRobot extends AbstractModule {
 	 * topic to module map
 	 */
 	private List<ModuleEntry> modules;
-	protected boolean IOIOEnabled;
-	public AbstractRobot (Logger logger) {
+	private IOIOContext ioioContext;
+	//protected boolean IOIOEnabled;
+	//protected IOIO ioio;
+	
+	public AbstractRobot (IOIOContext ioioContext, Logger logger) {
 		super(logger);
+		this.ioioContext = ioioContext;
 	}
 	
+	protected IOIOContext getIoioContext(){
+		return ioioContext;
+	}
+	/*
 	public void setIOIOEnabled(boolean iOIOEnabled) {
 		IOIOEnabled = iOIOEnabled;
 	}
 	
 	public boolean isIOIOEnabled() {
 		return IOIOEnabled;
-	}
+	}*/
 	
 	/**
 	 * Get robot's modules
@@ -82,8 +90,35 @@ public abstract class AbstractRobot extends AbstractModule {
 	
 	@Override
 	public void start() {
+		/*try {
+			if (IOIOEnabled){
+				ioio = IOIOFactory.create();
+				try {
+					getLogger().log(LogType.DEBUG, "connecting IOIO..." + ioio.getState().name());
+					ioio.waitForConnect();
+					Thread.sleep(1000);
+					getLogger().log(LogType.DEBUG, "IOIO connected..." + ioio.getState().name());
+				} catch (IncompatibilityException e){
+					getLogger().log(LogType.ERROR, "QuadPWMModule.start(). Can't connect IOIO - incompatible", e);
+				} catch (ConnectionLostException e) {
+					getLogger().log(LogType.ERROR, "QuadPWMModule.start(). Can't connect IOIO - connection lost", e);
+				}
+				if (!ioio.getState().equals(State.CONNECTED)){
+					throw new ConnectionLostException();
+				}
+				Thread.sleep(1000);//give it some time to initialize ioio	
+			}
+		} catch (InterruptedException e){
+			//do nothing
+		} catch (ConnectionLostException e) {
+			getLogger().log(LogType.ERROR, String.format("AbstractRobot.start(). Can't start IOIO\n%s", e.getMessage()), e);
+		}*/
+		
+		//once IOIO is started, can start the robot
+		
 		if (getModules() == null){
-			getLogger().log(LogType.ERROR, "The robot is not initialized. Can't start");
+			getLogger().log(LogType.ERROR, "Robot's modules are not defined. Can't start");
+			return;
 		} else {
 			if (getBroker() != null){
 				for (ModuleEntry entry: getModules()){
@@ -92,6 +127,13 @@ public abstract class AbstractRobot extends AbstractModule {
 			}
 		}
 		super.start();
+		//and finally tell ioioContext to initiate looper
+		if (ioioContext.getLooper() != null){
+			if (!ioioContext.getLooper().isConnected()){
+				getLogger().log(LogType.ERROR, "Robot's IOIO is not connected. Can't start");
+			}
+			ioioContext.initIOIOListeners();	
+		}
 	}
 	
 	@Override
@@ -103,7 +145,17 @@ public abstract class AbstractRobot extends AbstractModule {
 					entry.getModule().stop();	
 				}
 			}
-		}	
+		}
+		/*
+		if (isIOIOEnabled()){
+			ioio.disconnect();
+			try {
+				ioio.waitForDisconnect();
+				getLogger().log(LogType.DEBUG, "IOIO disconnected...");
+			} catch (Exception e ) {
+				getLogger().log(LogType.ERROR, "Exception while disconnecting from IOIO", e);
+			}
+		}*/	
 	};
 	
 	@Override

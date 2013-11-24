@@ -1,20 +1,23 @@
-/*
+/**
  *  This file is part of Androbotus project.
  *
  *  Androbotus is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
+ *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  Androbotus is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
+ *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU Lesser General Public License
+ *  You should have received a copy of the GNU General Public License
  *  along with Androbotus.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.androbotus.client;
+
+import ioio.lib.util.IOIOLooper;
+import ioio.lib.util.android.IOIOActivity;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -25,7 +28,6 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.hardware.SensorManager;
@@ -48,9 +50,10 @@ import com.androbotus.client.contract.LocalAttitudeParameters;
 import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.LoggerMessage;
 import com.androbotus.client.contract.Sensors;
+import com.androbotus.client.ioio.IOIOContext;
+import com.androbotus.client.ioio.Looper;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.impl.quad.RoboticQuadImpl;
-import com.androbotus.client.util.CameraManager;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
@@ -63,7 +66,7 @@ import com.androbotus.mq2.core.impl.TCPRemoteConnection;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
 
-public class MainActivity extends Activity implements TopicListener{
+public class MainActivity extends IOIOActivity implements TopicListener{
 
 	private final static String TAG = "Main Activity";
 	
@@ -76,6 +79,7 @@ public class MainActivity extends Activity implements TopicListener{
 	private Connection connection;
 	private MessageBroker messageBroker;
 	private AbstractRobot robot;
+	private IOIOContext ioioContext = new IOIOContext();
 	
 	private SensorManager sensorManager;
 	
@@ -131,7 +135,7 @@ public class MainActivity extends Activity implements TopicListener{
         //init modules
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         SurfaceView sv = (SurfaceView)findViewById(R.id.cameraView);
-        robot = new RoboticQuadImpl(sensorManager, sv,  runningLogger);
+        robot = new RoboticQuadImpl(sensorManager, sv, ioioContext, runningLogger);
         
         final EditText serverAddressField = (EditText) findViewById(R.id.ipAddress);
         serverAddressField.setText(ipAddress);
@@ -210,8 +214,8 @@ public class MainActivity extends Activity implements TopicListener{
     	if (started)
     		return;
 
-    	boolean connectIOIO = ((CheckBox) findViewById(R.id.enableIOIO)).isChecked();
-    	robot.setIOIOEnabled(connectIOIO);
+    	//boolean connectIOIO = ((CheckBox) findViewById(R.id.enableIOIO)).isChecked();
+    	//robot.setIOIOEnabled(connectIOIO);
     	
     	//init message broker
     	try {
@@ -482,17 +486,6 @@ public class MainActivity extends Activity implements TopicListener{
     }
     
     @Override
-    protected void onStart() {
-    	super.onStart();
-    }
-    
-    @Override
-    protected void onStop() {
-    	super.onStop();
-    	//stop();
-    }
-    
-    @Override
     protected void onResume() {
     	super.onResume();
     	if (started)
@@ -503,6 +496,13 @@ public class MainActivity extends Activity implements TopicListener{
     protected void onPause() {
     	super.onPause();
     	stop();    	
+    }
+    
+    @Override
+    protected IOIOLooper createIOIOLooper() {
+    	Looper looper = new Looper(ioioContext, runningLogger);
+    	
+    	return looper;
     }
         
     private enum FieldNames {
