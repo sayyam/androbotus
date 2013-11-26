@@ -411,7 +411,7 @@ public class QuadPwmModuleImpl extends IOIOModule {
 	 * @return
 	 */
 	private float normalize(float value, int min, int max){
-		return 100f*(value)/(float)(max-min);
+		return 100f*(value)/(max-min);
 	}
 	
 	/**
