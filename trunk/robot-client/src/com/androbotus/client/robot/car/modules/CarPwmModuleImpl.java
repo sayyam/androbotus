@@ -33,7 +33,7 @@ import com.androbotus.mq2.log.Logger.LogType;
  * @author maximlukichev
  * 
  */
-public class PwmModuleImpl extends IOIOModule {
+public class CarPwmModuleImpl extends IOIOModule {
 	private final static String TAG = "PwmModule";
 	private final static int RESOLUTION = 10;	
 	private final static int MINVALUE = 1000;
@@ -54,7 +54,7 @@ public class PwmModuleImpl extends IOIOModule {
 	 * @param pin
 	 * @param startValue between 0 and 100
 	 */
-	public PwmModuleImpl(IOIOContext context, int pin, int startValue, Logger logger) {
+	public CarPwmModuleImpl(IOIOContext context, int pin, int startValue, Logger logger) {
 		super(context, logger);
 		this.pin  = pin;
 		if (!(startValue <= 100 && startValue >= 0))

@@ -29,7 +29,7 @@ import com.androbotus.mq2.log.Logger.LogType;
  * @author maximlukichev
  *
  */
-public class ReportingPwmModule extends PwmModuleImpl{
+public class ReportingCarPwmModule extends CarPwmModuleImpl{
 	//private final static String TAG = "ReportingPwmModule";
 	
 	private String name;
@@ -42,7 +42,7 @@ public class ReportingPwmModule extends PwmModuleImpl{
 	 * @param startValue the initial value to be set to pwm whenever the module starts
 	 * @param logger the logger
 	 */
-	public ReportingPwmModule(IOIOContext context, int pin, String name, int startValue, Logger logger) {
+	public ReportingCarPwmModule(IOIOContext context, int pin, String name, int startValue, Logger logger) {
 		super(context, pin, startValue, logger);
 		this.name = name;
 	}
