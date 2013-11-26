@@ -94,10 +94,10 @@ public class ReportingQuadPwmModuleImpl extends QuadPwmModuleImpl{
 		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_PITCH.name(), currentOrientation[1]);
 		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_YAW.name(), currentOrientation[2]);
 		
-		am.getParameterMap().put(LocalAttitudeParameters.ROLL.name(), (float)roll);
-		am.getParameterMap().put(LocalAttitudeParameters.PITCH.name(), (float)pitch);
-		am.getParameterMap().put(LocalAttitudeParameters.YAW.name(), (float)yaw);
-		am.getParameterMap().put(LocalAttitudeParameters.THRUST.name(), (float)thrust);
+		am.getParameterMap().put(LocalAttitudeParameters.ROLL.name(), roll);
+		am.getParameterMap().put(LocalAttitudeParameters.PITCH.name(), pitch);
+		am.getParameterMap().put(LocalAttitudeParameters.YAW.name(), yaw);
+		am.getParameterMap().put(LocalAttitudeParameters.THRUST.name(), thrust);
 		
 		return am;
 	}
