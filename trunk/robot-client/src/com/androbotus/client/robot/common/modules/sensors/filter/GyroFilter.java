@@ -57,9 +57,9 @@ public class GyroFilter {
     public float[] calculateNormalizedGyro(float[] values) {
              
     	// Axis of the rotation sample, not normalized yet.
-    	double axisX = (double)values[0];
-    	double axisY = (double)values[1];
-    	double axisZ = (double)values[2];
+    	double axisX = values[0];
+    	double axisY = values[1];
+    	double axisZ = values[2];
 
     	// Calculate the angular speed of the sample
     	double omegaMagnitude = Math.sqrt(axisX*axisX + axisY*axisY + axisZ*axisZ);
