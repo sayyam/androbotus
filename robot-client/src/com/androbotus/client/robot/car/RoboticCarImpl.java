@@ -27,7 +27,7 @@ import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.car.modules.PwmModuleImpl;
 import com.androbotus.client.robot.car.modules.ReportingPwmModule;
-import com.androbotus.client.robot.common.modules.sensors.SensorModule;
+import com.androbotus.client.robot.common.modules.SensorModule;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
