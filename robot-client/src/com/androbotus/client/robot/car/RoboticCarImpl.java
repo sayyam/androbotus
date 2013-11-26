@@ -25,8 +25,8 @@ import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.client.robot.AbstractRobot;
-import com.androbotus.client.robot.car.modules.PwmModuleImpl;
-import com.androbotus.client.robot.car.modules.ReportingPwmModule;
+import com.androbotus.client.robot.car.modules.CarPwmModuleImpl;
+import com.androbotus.client.robot.car.modules.ReportingCarPwmModule;
 import com.androbotus.client.robot.common.modules.SensorModule;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.log.Logger;
@@ -40,8 +40,8 @@ import com.androbotus.mq2.log.Logger.LogType;
 public class RoboticCarImpl extends AbstractRobot{
 	private Logger logger; 
 	
-	private PwmModuleImpl servo;
-	private PwmModuleImpl motor;
+	private CarPwmModuleImpl servo;
+	private CarPwmModuleImpl motor;
 	
 	private SensorManager sensorManager; 
 	
@@ -54,8 +54,8 @@ public class RoboticCarImpl extends AbstractRobot{
 	@Override
 	protected List<ModuleEntry> defineModules(){
 		List<ModuleEntry> modules = new ArrayList<AbstractRobot.ModuleEntry>();
-		this.servo =  new ReportingPwmModule(getIoioContext(), 6, "SERVO", 50, logger);
-		this.motor = new ReportingPwmModule(getIoioContext(), 5, "MOTOR", 0, logger);
+		this.servo =  new ReportingCarPwmModule(getIoioContext(), 6, "SERVO", 50, logger);
+		this.motor = new ReportingCarPwmModule(getIoioContext(), 5, "MOTOR", 0, logger);
 		
 		modules.add(new ModuleEntry(this.servo, new String[]{LocalTopics.SERVO.name()}));
 		modules.add(new ModuleEntry(this.motor, new String[]{LocalTopics.ESC.name()}));
