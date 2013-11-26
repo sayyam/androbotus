@@ -107,7 +107,7 @@ public class PwmModuleImpl extends IOIOModule {
 					&& getContext().getLooper().isConnected()
 					&& pinBound)
 			{
-				int newValue = (int)(value * 10) + MINVALUE;
+				int newValue = value * 10 + MINVALUE;
 				pwm.setPulseWidth(newValue); //to fit 1000 to 2000 microsec range
 				getLogger().log(LogType.DEBUG, String.format("New value: pin %s = %s", pin, newValue));
 			}	

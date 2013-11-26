@@ -24,6 +24,7 @@ import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.PreviewCallback;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.util.CameraUtils;
@@ -95,7 +96,7 @@ public class VideoModuleImpl extends AbstractModule implements SurfaceHolder.Cal
 			return;			
 		}
 		try {
-			view.setVisibility(SurfaceView.VISIBLE);
+			view.setVisibility(View.VISIBLE);
 
 			camera = Camera.open();
 			//camera.reconnect();
@@ -131,7 +132,7 @@ public class VideoModuleImpl extends AbstractModule implements SurfaceHolder.Cal
 			//camera.setPreviewCallback(null);
 			camera.release();
 			camera = null;
-			view.setVisibility(SurfaceView.INVISIBLE);
+			view.setVisibility(View.INVISIBLE);
 		}
 		cameraInitialized = false;
 	}
