@@ -37,6 +37,9 @@ import com.androbotus.mq2.log.Logger.LogType;
  *
  */
 public class Looper implements IOIOLooper {
+	
+	private final static long logPeriod = 1000; //every second
+	
 	private IOIOContext context;
 	private IOIO ioio;
 	private Logger logger;
@@ -46,6 +49,9 @@ public class Looper implements IOIOLooper {
 	private Map<String, Integer> valueMap = new HashMap<String, Integer>();
 	
 	//private boolean connected;
+	
+	private long lastSync= System.currentTimeMillis();
+	private int numLoops = 0;
 	
 	public Looper(IOIOContext context, Logger logger){
 		this.logger = logger;
@@ -104,6 +110,7 @@ public class Looper implements IOIOLooper {
 	
 	@Override
 	public void loop() throws ConnectionLostException, InterruptedException {
+		logAverageUpdateFrequency();
 		for (String key: pwms.keySet()){
 			PwmOutput pwm = pwms.get(key);
 			Integer newValue = valueMap.get(key);
@@ -111,6 +118,18 @@ public class Looper implements IOIOLooper {
 				continue;
 			}
 			pwm.setPulseWidth(newValue);
+		}
+	}
+	
+	private void logAverageUpdateFrequency(){
+		numLoops ++;
+		long timeSinceLastSync = System.currentTimeMillis() - lastSync;
+		
+		if (timeSinceLastSync >= logPeriod) {
+			//log and reset
+			logger.log(LogType.DEBUG, "Avg frequency, Hz: " + 1000*numLoops/timeSinceLastSync);
+			numLoops = 0;
+			lastSync = System.currentTimeMillis();
 		}
 	}
 	
