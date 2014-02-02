@@ -146,7 +146,7 @@ public class SensorModule extends AbstractModule implements SensorEventListener 
 		try {
 			getBroker().pushMessage(topic, sm);
 		} catch (Exception e){
-			getLogger().log(LogType.DEBUG, String.format("%s: ", TAG,"Unable to push local message: " + e.getMessage()));
+			getLogger().log(LogType.DEBUG, String.format("%s: Unable to push local message: %s", TAG, e.getMessage()));
 			Log.d(TAG, "Unable to push local message: " + e.getMessage());
 		}
 	}

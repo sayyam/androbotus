@@ -16,12 +16,19 @@
  */
 package com.androbotus.module;
 
+import java.nio.charset.Charset;
+
 import com.androbotus.contract.Topics;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.contract.Message;
+import com.androbotus.mq2.contract.ScriptControlMessage;
 import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.module.AbstractModule;
+import org.apache.catalina.util.Base64;
+import org.codehaus.jackson.Base64Variant;
+import org.codehaus.jackson.Base64Variants;
+import org.codehaus.jackson.map.ObjectMapper;
 
 /**
  * Control module is responsible for receiving control messages from the server
@@ -58,6 +65,30 @@ public class ControlModuleImpl extends AbstractModule {
 		try {
 			broker.pushMessageRemote(Topics.CONTROL.name(), cm);
 			System.out.println(String.format("Send control msg %s: %s", cm.getControlName(), cm.getValue()));
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Publishes new control value on CONTROL topic for remote broker
+	 * @param control the name of the control
+	 * @param newValue the new value
+	 */
+	public void publishScriptControlValue(String control, int newValue, String newScript){
+		if (getBroker() == null || newScript == null)
+			return;
+		
+		ScriptControlMessage cm = new ScriptControlMessage();
+		cm.setControlName(control);
+		cm.setValue(newValue);
+        //byte[] encoded = new ObjectMapper().convertValue(newScript, byte[].class);
+		cm.setScript(newScript);//new String(encoded));
+
+		RemoteMessageBrokerImpl broker = (RemoteMessageBrokerImpl)getBroker();
+		try {
+			broker.pushMessageRemote(Topics.CONTROL.name(), cm);
+			System.out.println(String.format("Send script control msg %s: %s", cm.getControlName(), cm.getScript()));
 		} catch (Exception e){
 			e.printStackTrace();
 		}

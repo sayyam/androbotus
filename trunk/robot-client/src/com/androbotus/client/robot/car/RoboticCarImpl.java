@@ -20,14 +20,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.hardware.SensorManager;
+import android.view.SurfaceView;
 
 import com.androbotus.client.contract.LocalTopics;
 import com.androbotus.client.contract.Topics;
 import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.client.robot.AbstractRobot;
-import com.androbotus.client.robot.car.modules.CarPwmModuleImpl;
 import com.androbotus.client.robot.car.modules.ReportingCarPwmModule;
 import com.androbotus.client.robot.common.modules.SensorModule;
+import com.androbotus.client.robot.common.modules.VideoModuleImpl;
+import com.androbotus.client.robot.common.modules.script.RhinoModule;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
@@ -38,28 +40,44 @@ import com.androbotus.mq2.log.Logger.LogType;
  *
  */
 public class RoboticCarImpl extends AbstractRobot{
-	private Logger logger; 
-	
-	private CarPwmModuleImpl servo;
-	private CarPwmModuleImpl motor;
-	
 	private SensorManager sensorManager; 
+	private SurfaceView view;
 	
-	public RoboticCarImpl (IOIOContext ioioContext, SensorManager sensorManager, Logger logger) {
+	/**
+	 * Creates car robot
+	 * @param sensorManager the sensor manager
+	 * @param view the SurfaceView for camera initialization
+	 * @param logger the logger
+	 * @param connectIOIO the flag used to identify if ioio connection should be established. The false value is just for testing!!
+	 */
+	public RoboticCarImpl (SensorManager sensorManager, SurfaceView view, IOIOContext ioioContext, Logger logger) {
 		super(ioioContext, logger);
 		this.sensorManager = sensorManager;
-		this.logger = logger;
+		this.view = view;
 	}
 	
 	@Override
 	protected List<ModuleEntry> defineModules(){
 		List<ModuleEntry> modules = new ArrayList<AbstractRobot.ModuleEntry>();
-		this.servo =  new ReportingCarPwmModule(getIoioContext(), 6, "SERVO", 50, logger);
-		this.motor = new ReportingCarPwmModule(getIoioContext(), 5, "MOTOR", 0, logger);
 		
-		modules.add(new ModuleEntry(this.servo, new String[]{LocalTopics.SERVO.name()}));
-		modules.add(new ModuleEntry(this.motor, new String[]{LocalTopics.ESC.name()}));
-		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, logger), new String[]{Topics.SENSOR.name()}));
+		//this is the quadcopter stabilization module, responsible for yaw/pitch/roll stabilization
+		modules.add(new ModuleEntry(new ReportingCarPwmModule(getIoioContext(), 0, getLogger()), 
+				new String[]{Topics.CONTROL.name(), LocalTopics.ROTATION_VECTOR.name(), LocalTopics.GYRO.name()}));
+		
+		//now define sensor module
+		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, getLogger()), new String[]{Topics.CONTROL.name()}));
+		
+		//add video module. This module will stream video to the server 
+		modules.add(new ModuleEntry(new VideoModuleImpl(view, 50, getLogger()), new String[]{Topics.CONTROL.name()}));
+		
+		//add radar module to track and avoid obstacles
+		//modules.add(new ModuleEntry(new RadarModule(ioio, 1, new int[]{6}, new int[]{7}, new int[]{8}, 10, getLogger(), isIOIOEnabled()), new String[]{Topics.CONTROL.name()}));
+		
+		//we need this module to be able send messages to the server
+		//modules.add(new ModuleEntry(new RemoteMessageModuleImpl(logger), new String[]{LocalTopics.REMOTE.name()}));
+		
+		//add module to interpret javascript code to control the robot
+		modules.add(new ModuleEntry(new RhinoModule(getLogger()), new String[]{Topics.CONTROL.name()}));
 		
 		return modules;
 	}
@@ -68,14 +86,9 @@ public class RoboticCarImpl extends AbstractRobot{
 	protected void routeControlMessage(ControlMessage message){
 		String cname = message.getControlName();
 		try {
-			if (cname.equals("ESC")){
-				//	redistribute message to ESC module
-				getBroker().pushMessage(LocalTopics.ESC.name(), message);
-			} else if (cname.equals("SERVO")) {
-				getBroker().pushMessage(LocalTopics.SERVO.name(), message);
-			}
+			//TODO: there are no supported control messages yet, this is just quick and dirty shortcut
+			//However translation of the server commands should happen here and then another control message should be sent to a processing module
 		} catch (Exception e){
-			logger.log(LogType.ERROR, "Can't redistribute message to " + cname, e);
+			getLogger().log(LogType.ERROR, "Can't redistribute message to " + cname, e);
 		}
-	}
-}
+	}}

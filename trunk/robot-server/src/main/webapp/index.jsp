@@ -3,13 +3,24 @@
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<title>Androbotus - Main</title>
+		
+		<link rel="stylesheet" href="scripts/codemirror/lib/codemirror.css">
+		<link rel="stylesheet" href="scripts/codemirror/addon/hint/show-hint.css">
 		<link rel="stylesheet" href="scripts/jgauge/css/jgauge.css" type="text/css" />
         <!--link rel="stylesheet" href="scripts/jgauge/css/page.css" type="text/css" /-->
+        
 		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 		<script src="scripts/jqueryrotate/jQueryRotate.1.7.js"></script>
         <script src="scripts/jgauge/js/jgauge-0.3.0.a3.js"></script>
-
+		<script src="scripts/codemirror/lib/codemirror.js"></script>
+		<script src="scripts/codemirror/addon/hint/show-hint.js"></script>
+		<script src="scripts/codemirror/addon/hint/javascript-hint.js"></script>
+		<script src="scripts/codemirror/mode/javascript/javascript.js"></script>
+		
 		<script type="text/javascript">
+			//this is is a switch to turn on/off keybord inputs when typing in a script
+			var editorEnabled = false;
+						
 			//vars	
 			//var attitude;
 			var rollChart;
@@ -20,23 +31,82 @@
 			var rlChart;
             var rrChart;
 
-			
-			//emulates click on the button with given id		
+            //code mirror variable
+            var editor;
+			function executeBtnPressed(start){
+                if (start && !editorEnabled){
+                    //editor is not in 'edit' mode, so just exit
+                    return;
+                }
+                executeScript(start);
+			}
+
+            function enableEditor(enabled){
+                editorEnabled = enabled;
+                if (editorEnabled) {
+                    $('#edit_btn').attr("value", "CANCEL");
+                    $('#run_btn').removeAttr("disabled");
+                } else {
+                    $('#edit_btn').attr("value", "EDIT");
+                    $('#run_btn').attr("disabled", "true");
+                }
+            }
+
+            function executeScript(start){
+                //-1 means stop current script. 1 means start new script
+                var value = '-1';
+                if (start){
+                    value = '1';
+                }
+
+                $('#code_action').attr('value',value);
+                $('#code_value').attr('value',editor.getValue());
+                $.ajax({
+                    url: 'http://localhost:8080/androbotus/webaccess',
+                    type: 'POST',
+                    data: $('#code_form').serialize(),
+                    dataType: 'x-www-form-urlencoded',
+                    success: function(data) {
+                                appendToLog("script action: " + value);
+                            }
+                });
+                $('#code_value').attr('value',"");
+            }
+
+            //emulates click on the button with given id
 			function keyBtnPressed(id){
 			 	$('#' + id).click();
 			}
 			
 			//sends new control value to the server. The value is obtained via corresponding button click
 			function btnPressed(code) {
-			  appendToLog(code);
+			    //if editor enabled - button actions are not allowed
+                if (editorEnabled){
+                    return;
+                }
+			  	
+                appendToLog(code);
 			  
-			  //post the control data to server
-			  var controlJson = createControlJson(code);
-			  $.post('http://localhost:8080/androbotus/webaccess', controlJson,
-    				function(){appendToLog('succed');}
-    		  );	
+                //post the control data to server
+                var controlJson = createControlJson(code);
+                sendControlData(controlJson);
 			}
-			
+
+			function sendControlData(controlJson){
+                //$.post('http://localhost:8080/androbotus/webaccess', controlJson,
+                //    function(){appendToLog('success');}
+                //);
+                $('#payload').attr('value',controlJson);
+                $.ajax({
+                    url: 'http://localhost:8080/androbotus/webaccess',
+                    type: 'POST',
+                    data: $('#control_form').serialize(),
+                    dataType: 'x-www-form-urlencoded',
+                    success: function(data) {appendToLog("success");}
+                });
+                $('#payload').attr('value',"");
+			}
+
 			//append the given text string to the end of log stream
 			function appendToLog(text){
 				$('#log').append('\n' + text);
@@ -119,10 +189,16 @@
 				}
 				
 				//var json = {type: "", controlValue: ""};
-				var controlJson = '{"type":"' + type + '", "controlValue":"' + value + '"}';
+				var controlJson = '{"type":"' + type + '", "data":{"value":"' + value + '"}}';
 			
 				return controlJson;
 			}
+
+
+            function createScriptControlJson(type, value, script){
+                var controlJson = '{"type":"' + type + '", "data":{"value":"' + value + '", "script":"'+ script +'"}}';
+                return controlJson;
+            }
 			
 			//requests new sensor data from the server and displays it in the 'sensor' div
 			function updateSensors(){
@@ -368,6 +444,7 @@
             var gyroalpha = $("#gyroalpha");
             var burst = $("#burst");
             var burstDuration = $("#burstDuration");
+			var codeEditor = $();
 			
             pparam.bind('click', function(){postParameter('PPARAM', pparam);});
             iparam.bind('click', function(){postParameter('IPARAM', iparam);});
@@ -389,7 +466,14 @@
             //postParameter('PITCH_CORR', pitchcorr);
             //postParameter('YAW_CORR', yawcorr);
             //postParameter('LOW_PASS_GYRO', gyroalpha);
-
+			
+			//init code editor
+			editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+			    autoCloseBrackets: true,
+				lineNumbers: true,
+				extraKeys: {"Ctrl-Space": "autocomplete"}
+			});		
+			
 		});
 		</script>
 		<style>
@@ -452,9 +536,11 @@
 				<td><INPUT id="downBtn" TYPE=BUTTON OnClick="btnPressed('Down');" VALUE="v"/></td>
 				<td><INPUT id="rightBtn" TYPE=BUTTON OnClick="btnPressed('Right');" VALUE=">"/></td>
 			</tr>
-			</table>			
+			</table>
 			<div>	
-				<div>
+				<table>
+				<tr>
+				    <td>
 					<div>
 						P: <input id="pparam" type="number" min="0" max="1" step=".01" value=".1"/>  
 						I: <input id="iparam" type="number" min="0" max="1" step=".01" value="0"/>
@@ -470,15 +556,77 @@
 					<div>	
 						Burst: <input id="burst" type="number" min="-100" max="100" step="1" value="0"/>
 						Burst Duration: <input id="burstDuration" type="number" min="0" max="1000" step="50" value="0"/>
-					</div>	
-				</div>
+					</div>
+					</td>
+					<td>
+					<div>
+                        <textarea id="log" lines="15" col="20">Output log</textarea>
+                    </div>
+                    <div id="sensors"></div>
+					</td>
+				</tr>
+				</table>
 				<div><input id="reset" type=BUTTON OnClick="btnPressed('RESET');" VALUE="RESET"/></div>
-				<span>
-					<textarea id="log" lines="15" col="20">Output log</textarea>
-				</span>	
-				<span id="sensors">
-				</span>
+				<form id="control_form" method="POST">
+				    <input type="hidden" name="type" value="control" />
+				    <input type="hidden" id="payload" name="payload" value=""/>
+				</form>
 			</div>
 		</div>
+		<div>
+		    <textarea id="code" name="code">
+function playNote(val, tact){
+	robot.THRUST=-100;
+	robot.THRUST=val;
+	robot.sleep(tactDuration*tact);
+}
+function playLowSol(tact){
+	playNote(10, tact);
+}
+function playLowLa(tact){
+	playNote(12, tact);
+}
+function playLowSi(tact){
+	playNote(14, tact);
+}
+function playDo(tact){
+	playNote(16, tact);
+}
+function playRe(tact){
+	playNote(18, tact);
+}
+function playMi(tact){
+	playNote(20, tact);
+}
+function playFa(tact){
+	playNote(22, tact);
+}
+function pause(){
+	robot.THRUST=-100;
+	robot.sleep(10);
+}
+var tactDuration = 300;
+
+while (true){
+	playMi(2);playDo(2);playMi(2);playDo(2);
+	playFa(2);playMi(2);playRe(4);
+	playLowSol(2);pause();playLowSol(2);pause();playLowSol(2);playLowLa(1);playLowSi(1);
+	playDo(2);pause();playDo(2);pause();playDo(4);
+
+	//tear down the cycle
+	playNote(0,0);
+	robot.sleep(1000);
+}</textarea>
+		    <form id="code_form" method="POST">
+                <input type="hidden" name="type" value="script" />
+                <input id="code_action" type="hidden" name="action" value="-1" />
+                <input type="hidden" id="code_value" name="code" value=""/>
+            </form>
+			<span>
+			    <input id="edit_btn" type=BUTTON OnClick="enableEditor(!editorEnabled);" value="EDIT"/>
+				<input id="run_btn" type=BUTTON OnClick="executeBtnPressed(true);" value="RUN" disabled/>
+				<input id="stop_btn" type=BUTTON OnClick="executeBtnPressed(false);" value="STOP"/>
+			</span>
+		</div>	
 	</body>
 </html>

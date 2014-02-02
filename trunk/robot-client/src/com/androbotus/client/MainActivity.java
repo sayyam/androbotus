@@ -52,6 +52,7 @@ import com.androbotus.client.contract.Sensors;
 import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.client.ioio.Looper;
 import com.androbotus.client.robot.AbstractRobot;
+import com.androbotus.client.robot.car.RoboticCarImpl;
 import com.androbotus.client.robot.quad.RoboticQuadImpl;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.ControlMessage;
@@ -134,7 +135,8 @@ public class MainActivity extends IOIOActivity implements TopicListener{
         //init modules
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         SurfaceView sv = (SurfaceView)findViewById(R.id.cameraView);
-        robot = new RoboticQuadImpl(sensorManager, sv, ioioContext, runningLogger);
+        robot = //new RoboticCarImpl(sensorManager, sv, ioioContext, runningLogger);
+        		new RoboticQuadImpl(sensorManager, sv, ioioContext, runningLogger);
         
         final EditText serverAddressField = (EditText) findViewById(R.id.ipAddress);
         serverAddressField.setText(ipAddress);
