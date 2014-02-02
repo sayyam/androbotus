@@ -28,6 +28,7 @@ import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.client.robot.AbstractRobot;
 import com.androbotus.client.robot.common.modules.SensorModule;
 import com.androbotus.client.robot.common.modules.VideoModuleImpl;
+import com.androbotus.client.robot.common.modules.script.RhinoModule;
 import com.androbotus.client.robot.quad.modules.ReportingQuadPwmModuleImpl;
 import com.androbotus.mq2.contract.ControlMessage;
 import com.androbotus.mq2.log.Logger;
@@ -75,6 +76,9 @@ public class RoboticQuadImpl extends AbstractRobot{
 		
 		//we need this module to be able send messages to the server
 		//modules.add(new ModuleEntry(new RemoteMessageModuleImpl(logger), new String[]{LocalTopics.REMOTE.name()}));
+		
+		//add module to interpret javascript code to control the robot
+		modules.add(new ModuleEntry(new RhinoModule(getLogger()), new String[]{Topics.CONTROL.name()}));
 		
 		return modules;
 	}

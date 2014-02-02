@@ -1,6 +1,8 @@
 package com.androbotus;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import junit.framework.Assert;
 
@@ -37,22 +39,28 @@ public class JacksonTest {
 		
 		Control control = new Control();
 		control.setType(ControlTypes.ACCELERATION);
-		control.setControlValue("10");
+		
+		Map<String, String> data = new HashMap<String, String>();
+		data.put("value", "10");
+		control.setData(data);
 		
 		ObjectMapper om = new ObjectMapper();
 		String s = om.writeValueAsString(control);
+		Assert.assertTrue(s.length() > 0);
 		
+		Control c = om.readValue(s, Control.class);
 		System.out.println(s);
-		Assert.assertTrue(s.equals("{\"type\":\"ACCELERATION\",\"controlValue\":\"10\"}"));
+		Assert.assertTrue(control.getType().equals(c.getType()));
+		Assert.assertTrue(control.getData().get("value").equals(c.getData().get("value")));
 	}
 
 	@Test
 	public void controlDeserializationTest() throws Exception {
-		String s = "{\"type\":\"DEFAULT\",\"controlValue\":\"10\"}";
+		String s = "{\"type\":\"ACCELERATION\",\"data\":{\"value\":\"10\"}}";
 		ObjectMapper om = new ObjectMapper();
 		Control control = om.readValue(s, Control.class);
 	
-		Assert.assertTrue(control.getType() == ControlTypes.DEFAULT);
-		Assert.assertTrue(control.getControlValue().equals("10"));
+		Assert.assertTrue(control.getType() == ControlTypes.ACCELERATION);
+		Assert.assertTrue(control.getData().get("value").equals("10"));
 	}
 }

@@ -170,36 +170,35 @@ public class ControllerServlet extends HttpServlet {
 		pw.close();
 	}
 
-	/**
+    /**
 	 * POST request is used for sending the commands to the control module
 	 */
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException {
-		// read the request body
-		InputStream is = req.getInputStream();
-		BufferedReader br = new BufferedReader(new InputStreamReader(is));
+		//put is used to update script code executed by robot
+        if ("script".equals(req.getParameter("type"))){
+            //this is a special case, used by code editor to pass text
+            String code = req.getParameter("code");
+            String action = req.getParameter("action");
+            processScriptControlValue(action, code, ControlTypes.SCRIPT.name());
+        } else if ("control".equals(req.getParameter("type"))){
+        	String jsonString = req.getParameter("payload");
 
-		StringBuilder sb = new StringBuilder();
-
-		String line;
-		while ((line = br.readLine()) != null) {
-			sb.append(line);
-		}
-		String jsonString = sb.toString();
-
-		ObjectMapper om = new ObjectMapper();
-		Control control = om.readValue(jsonString, Control.class);
-
-		processControlValue(control);
-		br.close();
+    		ObjectMapper om = new ObjectMapper();
+    		Control control = om.readValue(jsonString, Control.class);
+    		processControlValue(control);
+        }
 	}
 
 	private void processControlValue(Control control) throws ServletException {
 
 		ControlTypes type = control.getType();
-		String newValue = control.getControlValue();
-
+		if (control.getData() == null){
+			return;
+		}
+		String newValue = control.getData().get("value");
+		
 		if (type == ControlTypes.STEERING) {
 			processIntControlValue(newValue, "SERVO");
 		} else if (type == ControlTypes.ACCELERATION) {
@@ -240,6 +239,9 @@ public class ControllerServlet extends HttpServlet {
 			processFloatControlValue(newValue, ControlTypes.LOW_PASS_GYRO.name());
 		} else if (type == ControlTypes.RESET) {
 			processIntControlValue("0", "RESET");
+		} else if (type == ControlTypes.SCRIPT) {
+			String script = control.getData().get("script");
+			processScriptControlValue(newValue, script, ControlTypes.SCRIPT.name());
 		} else {
 			throw new ServletException("Unknown control type: " + type.name());
 		}
@@ -255,6 +257,17 @@ public class ControllerServlet extends HttpServlet {
 		}
 		// int currentValue = accelerationModule.getAccelerationValue();
 		this.control.publishControlValue(controlName, newValueInt);
+
+	}
+	
+	private void processScriptControlValue(String value, String script, String controlName) throws ServletException {
+		int newValueInt;
+		try {
+			newValueInt = Integer.parseInt(value);
+		} catch (NumberFormatException e) {
+			throw new ServletException(e);
+		}
+		this.control.publishScriptControlValue(controlName, newValueInt, script);
 
 	}
 	

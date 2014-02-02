@@ -16,6 +16,8 @@
  */
 package com.androbotus.servlet.contract;
 
+import java.util.Map;
+
 /**
  * Control object, represents the control command for the control module. Each control command is published to some topic, 
  * where the actual execution modules are subscribed to it 
@@ -25,7 +27,7 @@ package com.androbotus.servlet.contract;
  */
 public class Control {
 	private ControlTypes type;
-	private String controlValue;
+	private Map<String, String> data;
 	
 	/**
 	 * Get the type of the control
@@ -34,15 +36,7 @@ public class Control {
 	public void setType(ControlTypes type) {
 		this.type = type;
 	}
-	
-	/**
-	 * Set the control value
-	 * @param controlValue the value to set
-	 */
-	public void setControlValue(String controlValue) {
-		this.controlValue = controlValue;
-	}
-	
+		
 	/**
 	 * Get the type of the control
 	 * @return the type
@@ -51,11 +45,11 @@ public class Control {
 		return type;
 	}
 	
-	/**
-	 * Get the control value
-	 * @return the value
-	 */ 
-	public String getControlValue() {
-		return controlValue;
+	public Map<String, String> getData() {
+		return data;
+	}
+	
+	public void setData(Map<String, String> data) {
+		this.data = data;
 	}
 }

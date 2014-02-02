@@ -3,15 +3,24 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Androbotus - Main</title>
-<link rel="stylesheet" href="jgauge/css/gauge_screen.css" type="text/css" />
+
+<link rel="stylesheet" href="scripts/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="scripts/codemirror/addon/hint/show-hint.css">
+<link rel="stylesheet" href="scripts/jgauge/css/jgauge.css" type="text/css" />
+<!--link rel="stylesheet" href="scripts/jgauge/css/page.css" type="text/css" /-->
+
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-<script src="http://code.highcharts.com/highcharts.js"></script>
-<script src="http://code.highcharts.com/highcharts-more.js"></script>
-<script src="http://code.highcharts.com/modules/exporting.js"></script>
-<script language="javascript" type="text/javascript" src="jgauge/js/jQueryRotate.min.js"></script>
-<script language="javascript" type="text/javascript" src="jgauge/js/jgauge-0.3.0.a3.js"></script>
+<script src="scripts/jqueryrotate/jQueryRotate.1.7.js"></script>
+<script src="scripts/jgauge/js/jgauge-0.3.0.a3.js"></script>
+<script src="scripts/codemirror/lib/codemirror.js"></script>
+<script src="scripts/codemirror/addon/hint/show-hint.js"></script>
+<script src="scripts/codemirror/addon/hint/javascript-hint.js"></script>
+<script src="scripts/codemirror/mode/javascript/javascript.js"></script>
 
 <script type="text/javascript">
+//this is is a switch to turn on/off keybord inputs when typing in a script
+var editorEnabled = false;
+
 //vars
 //var attitude;
 var rollChart;
@@ -22,6 +31,46 @@ var frChart;
 var rlChart;
 var rrChart;
 
+//code mirror variable
+var editor;
+function executeBtnPressed(start){
+if (start && !editorEnabled){
+//editor is not in 'edit' mode, so just exit
+return;
+}
+
+//-1 means stop current script. 1 means start new script
+var value = -1;
+var script = '';
+if (start){
+value = 1;
+if (editor){
+script = editor.getValue();
+//$('#code').text();
+}
+}
+
+//var controlJson = createScriptControlJson('SCRIPT', value, script)
+//sendControlData(controlJson);
+$('#code_form').action='http://localhost:8080/androbotus/webaccess';
+$('#code_form').submit(
+function( event ) {
+appendToLog("script action: " + value);
+}
+);
+}
+
+function enableEditor(enabled){
+editorEnabled = enabled;
+if (editorEnabled) {
+$('#edit_btn').attr("value", "CANCEL");
+$('#run_btn').removeAttr("disabled");
+} else {
+$('#edit_btn').attr("value", "EDIT");
+$('#run_btn').attr("disabled", "true");
+}
+}
+
 
 //emulates click on the button with given id
 function keyBtnPressed(id){
@@ -30,12 +79,21 @@ $('#' + id).click();
 
 //sends new control value to the server. The value is obtained via corresponding button click
 function btnPressed(code) {
+//if editor enabled - button actions are not allowed
+if (editorEnabled){
+return;
+}
+
 appendToLog(code);
 
 //post the control data to server
 var controlJson = createControlJson(code);
+sendControlData(controlJson);
+}
+
+function sendControlData(controlJson){
 $.post('http://localhost:8080/androbotus/webaccess', controlJson,
-function(){appendToLog('succed');}
+function(){appendToLog('success');}
 );
 }
 
@@ -60,19 +118,19 @@ value = 0;
 }
 if (code == 'Left'){
 //roll left
-type = 'ROLL';
+type = 'ROLL_BURST';
 value = -1;
 } else if (code == 'Right' ) {
 //roll right
-type = 'ROLL';
+type = 'ROLL_BURST';
 value = 1;
 } else if (code == 'Up') {
 //nose down
-type = 'PITCH';
+type = 'PITCH_BURST';
 value = -1;
 } else if (code == 'Down') {
 //nose up
-type = 'PITCH';
+type = 'PITCH_BURST';
 value = 1;
 } else if (code == 'W') {
 //thrust up
@@ -84,37 +142,51 @@ type = 'THRUST';
 value = -1;
 } else if (code == 'A') {
 //yaw left
-type = 'YAW';
+type = 'YAW_BURST';
 value = -1;
 } else if (code == 'D') {
 //yaw right
+type = 'YAW_BURST';
+value = 1;
+} else if (code == 'trimLeft') {
+//trim roll left
+type = 'ROLL';
+value = -1;
+} else if (code == 'trimRight') {
+//trim roll right
+type = 'ROLL';
+value = 1;
+} else if (code == 'trimForward') {
+//trim pitch forward: nose down
+type = 'PITCH';
+value = -1;
+} else if (code == 'trimBackward') {
+//trim pitch backward: nose up
+type = 'PITCH';
+value = 1;
+} else if (code == 'trimYawLeft') {
+//trim yaw left
+type = 'YAW';
+value = -1;
+} else if (code == 'trimYawRight') {
+//trim yaw right
 type = 'YAW';
 value = 1;
-} else if (code == 'PPARAM') {
-//p parameter
-type = 'PPARAM';
-} else if (code == 'IPARAM') {
-//i parameter
-type = 'IPARAM';
-} else if (code == 'DPARAM') {
-//d parameter
-type = 'DPARAM';
-} else if (code == 'IMAX') {
-//imax parameter
-type = 'IMAX';
-} else if (code == 'RESET') {
-type = 'RESET';
-} else if (code == 'ROLL_CORR') {
-type = 'ROLL_CORR';
-} else if (code == 'PITCH_CORR') {
-type = 'PITCH_CORR';
-} else if (code == 'YAW_CORR') {
-type = 'YAW_CORR';
+}
+else {
+//for all other cases send the same type as the code
+type = code;
 }
 
 //var json = {type: "", controlValue: ""};
-var controlJson = '{"type":"' + type + '", "controlValue":"' + value + '"}';
+var controlJson = '{"type":"' + type + '", "data":{"value":"' + value + '"}}';
 
+return controlJson;
+}
+
+
+function createScriptControlJson(type, value, script){
+var controlJson = '{"type":"' + type + '", "data":{"value":"' + value + '", "script":"'+ script +'"}}';
 return controlJson;
 }
 
@@ -160,26 +232,53 @@ btnPressed('W');
 btnPressed('D');
 } else if (event.keyCode == 83) {
 btnPressed('S');
+} else if (event.keyCode == 80) {
+//P
+btnPressed('trimForward');
+} else if (event.keyCode == 186) {
+//;
+btnPressed('trimBackward');
+} else if (event.keyCode == 76) {
+//L
+btnPressed('trimLeft');
+} else if (event.keyCode == 222) {
+//'
+btnPressed('trimRight');
+} else if (event.keyCode == 188) {
+//<
+btnPressed('trimYawLeft');
+} else if (event.keyCode == 188) {
+//>
+btnPressed('trimYawRight');
 }
 });
 
 //create a speedometer-like guage to display roll and pitch angles
-function createRollPitchGuage(id, name, min, max){
+function createRollPitchGuage(id, name, min, max, hasRange){
 var g = new jGauge(); // Create a new jGauge.
 g.id = id;
 g.label.suffix = name; // Make the value label bytes.
 g.ticks.count = 5;
 g.ticks.start = min;
 g.ticks.end = max;
-g.width = 170;
-g.height = 170;
+g.needle.imagePath = 'scripts/jgauge/img/jgauge_needle_default.png';
+g.imagePath = 'scripts/jgauge/img/jgauge_face_default.png';
+g.range.color = 'rgba(34, 139, 34, 0.0)';
+g.label.precision = 0; // 0 decimals (whole numbers).
+if (hasRange){
+g.range.color = 'rgba(34, 139, 34, 0.2)';
+}
+g.range.start = -160;
+g.range.end = -20;
+
+g.range.thickness = 36;
+g.range.radius = 55;
 
 return g;
 }
 
 //request new roll/pitch/yaw values from the server to plot them on the guage
 function updateGuage(guage, min, max, value) {
-if (!chart.renderer.forExport) {
 var val = 0;
 if (value){
 val = value;
@@ -192,18 +291,17 @@ val = max;
 }
 guage.setValue(val);
 }
-}
 
 //create guage for engines thrust. A single guage displays thrust level for 2 engines
 function createIndivThrust(id, name) {
 var g = new jGauge(); // Create a new jGauge.
 g.id = id; // Link the new jGauge to the placeholder DIV.
-g.imagePath = 'jguage/img/jgauge_face_taco.png';
+g.imagePath = 'scripts/jgauge/img/jgauge_face_taco.png';
 g.segmentStart = -225
 g.segmentEnd = 45
 g.width = 170;
 g.height = 170;
-g.needle.imagePath = 'jguage/img/jgauge_needle_taco.png';
+g.needle.imagePath = 'scripts/jgauge/img/jgauge_needle_taco.png';
 g.needle.xOffset = 0;
 g.needle.yOffset = 0;
 g.label.yOffset = 55;
@@ -222,26 +320,26 @@ return g;
 }
 
 var cnt = 0;
-//this function is turned off since all the sensors should use charts as of now
-//setInterval(function(){updateSensors()},40);
-
 //retreive and display video data
-var frameCnt = 0;
-var newImage = new Image();
-var imageBase ="video.jpg";
-newImage.src = imageBase;
+//var frameCnt = 0;
+//var newImage = new Image();
+//var imageBase ="video.jpg";
+//newImage.src = imageBase;
 function refreshVideoFrame() {
-if(newImage.complete) {
-document.getElementById("video").src = newImage.src;
-newImage = new Image();
-newImage.src = 'http://localhost:8080/androbotus/webvideo' + "#" + frameCnt;
-cnt++;
+$.ajax({
+type: "GET",
+url: 'http://localhost:8080/androbotus/webaccess/video',
+contentType: 'application/json; charset=utf-8',
+dataType: 'json',
+success: function(json){
+//the json contains base64 encoded image data
+var data = json.data;
+if (!data)
+return;
+$("#video").attr("src","data:image/jpeg;base64,"+ data);
 }
+});
 }
-
-//video is currently switched off
-//refresh image with 25 fps rate to make illusion of video. Poor mans solution though...
-//setInterval(function(){refreshVideoFrame()}, 40);
 
 //bind parameter input boxes to listen the keyboard events
 function postParameter(code, element) {
@@ -258,8 +356,8 @@ appendToLog('Updated param:' + code + ":" + element.val());
 );
 }
 
+var attitude = {};
 function updateAttitude() {
-var attitude;
 $.ajax({
 type: "GET",
 url: 'http://localhost:8080/androbotus/webaccess/attitude',
@@ -267,11 +365,11 @@ contentType: 'application/json; charset=utf-8',
 dataType: 'json',
 success: function(json){
 //if success then get the fresh attitude and update corresponding chart sections
-attitude = json;
+attitude.attitudeMap = json.attitudeMap;
 }
 });
 
-if (attitude && attitude.attitudeMap){
+if (attitude.attitudeMap){
 if (rollChart){
 updateGuage(rollChart, -90, 90, attitude.attitudeMap.SENSOR_ROLL);
 }
@@ -279,7 +377,7 @@ if (pitchChart){
 updateGuage(pitchChart, -90, 90, attitude.attitudeMap.SENSOR_PITCH);
 }
 if (yawChart){
-updateGuage(yawChart, -180, 180, attitude.attitudeMap.SENSOR_PITCH);
+updateGuage(yawChart, -180, 180, attitude.attitudeMap.SENSOR_YAW);
 }
 if (flChart){
 updateGuage(flChart, 0, 100, attitude.attitudeMap.FL);
@@ -294,17 +392,17 @@ if (rrChart){
 updateGuage(rrChart, 0, 100, attitude.attitudeMap.RR);
 }
 }
-delete attitude;
+delete attitude.attitudeMap;  //delete the reference explicitly
 }
 
 //create all the charts first
 var flChart = createIndivThrust('fl-thrust', 'FR');
 var frChart = createIndivThrust('fr-thrust', 'FL');
 var rlChart = createIndivThrust('rl-thrust', 'RL');
-var rrChart = createIndivThrust('rl-thrust', 'RR');
-var rollChart = createRollPitchGuage('roll', 'Roll', -90, 90);
-var pitchChart = createRollPitchGuage('pitch', 'Pitch', -90, 90);
-var yawChart = createRollPitchGuage('yaw', 'Yaw', -180, 180);
+var rrChart = createIndivThrust('rr-thrust', 'RR');
+var rollChart = createRollPitchGuage('roll', 'Roll', -90, 90, true);
+var pitchChart = createRollPitchGuage('pitch', 'Pitch', -90, 90, true);
+var yawChart = createRollPitchGuage('yaw', 'Yaw', -180, 180, false);
 
 $(document).ready(function() {
 //init charts
@@ -313,10 +411,17 @@ frChart.init();
 rlChart.init();
 rrChart.init();
 rollChart.init();
+rollChart.setValue(0);
 pitchChart.init();
+pitchChart.setValue(0);
 yawChart.init();
+yawChart.setValue(0);
 
-setInterval(updateAttitude(), 40); //update rate is 25 frames per second
+//update rate is 25 frames per second
+setInterval(function(){updateAttitude();}, 40);
+
+//refresh image with 25 fps rate to make illusion of video. Poor mans solution though...
+setInterval(function(){refreshVideoFrame()}, 40);
 
 //bind param controls
 var pparam = $("#pparam");
@@ -326,6 +431,10 @@ var imax = $("#imax");
 var rollcorr = $("#rollcorr");
 var pitchcorr = $("#pitchcorr");
 var yawcorr = $("#yawcorr");
+var gyroalpha = $("#gyroalpha");
+var burst = $("#burst");
+var burstDuration = $("#burstDuration");
+var codeEditor = $();
 
 pparam.bind('click', function(){postParameter('PPARAM', pparam);});
 iparam.bind('click', function(){postParameter('IPARAM', iparam);});
@@ -334,6 +443,26 @@ imax.bind('click', function(){postParameter('IMAX', imax);});
 rollcorr.bind('click', function(){postParameter('ROLL_CORR', rollcorr);});
 pitchcorr.bind('click', function(){postParameter('PITCH_CORR', pitchcorr);});
 yawcorr.bind('click', function(){postParameter('YAW_CORR', yawcorr);});
+gyroalpha.bind('click', function(){postParameter('LOW_PASS_GYRO', gyroalpha);});
+burst.bind('click', function(){postParameter('BURST', burst);});
+burstDuration.bind('click', function(){postParameter('BURST_DURATION', burstDuration);});
+
+//init all the parameters
+//postParameter('PPARAM', pparam);
+//postParameter('IPARAM', iparam);
+//postParameter('DPARAM', dparam);
+//postParameter('IMAX', imax);
+//postParameter('ROLL_CORR', rollcorr);
+//postParameter('PITCH_CORR', pitchcorr);
+//postParameter('YAW_CORR', yawcorr);
+//postParameter('LOW_PASS_GYRO', gyroalpha);
+
+//init code editor
+editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+autoCloseBrackets: true,
+lineNumbers: true,
+extraKeys: {"Ctrl-Space": "autocomplete"}
+});
 
 });
 </script>
@@ -368,13 +497,19 @@ yawcorr.bind('click', function(){postParameter('YAW_CORR', yawcorr);});
                 </div>
             </td>
             <td>
-                <div id="roll"></div>
-                <div id="pitch"></div>
-                <div id="yaw"></div>
+                <div id="roll" class="jgauge"></div>
+                <div id="pitch" class="jgauge"></div>
+                <div id="yaw" class="jgauge"></div>
             </td>
             <td>
-                <div><span id="fl-thrust"</span><span id="fr-thrust"</span></div>
-                <div><span id="rl-thrust"</span><span id="rr-thrust"</span></div>
+                <div>
+                    <div id="fl-thrust" class="jgauge"></div>
+                    <div id="fr-thrust" class="jgauge"></div>
+                </div>
+                <div>
+                    <div id="rl-thrust" class="jgauge"></div>
+                    <div id="rr-thrust" class="jgauge"></div>
+                </div>
             </td>
         </tr>
     </table>
@@ -393,22 +528,46 @@ yawcorr.bind('click', function(){postParameter('YAW_CORR', yawcorr);});
         </tr>
     </table>
     <div>
-        <div>
-            P: <input id="pparam" type="number" min="0" max="1" step=".01" value=".1"/>
-            I: <input id="iparam" type="number" min="0" max="1" step=".01" value=".05"/>
-            D: <input id="dparam" type="number" min="0" max="1" step=".01" value=".05"/>
-            IMAX: <input id="imax" type="number" min="0" max="100" value="40"/>
-            Roll-Corr: <input id="rollcorr" type="number" min="0" max="1" step=".1" value=".1"/>
-            Pitch-Corr: <input id="pitchcorr" type="number" min="0" max="1" step=".1" value=".1"/>
-            Yaw-Corr: <input id="yawcorr" type="number" min="0" max="1" step=".1" value=".1"/>
-        </div>
-        <div><INPUT id="reset" TYPE=BUTTON OnClick="btnPressed('RESET');" VALUE="RESET"/></div>
-				<span>
-					<textarea id="log" lines="15" col="20">Output log</textarea>
-				</span>	
-				<span id="sensors">
-				</span>
+        <table>
+            <tr>
+                <td>
+                    <div>
+                        P: <input id="pparam" type="number" min="0" max="1" step=".01" value=".1"/>
+                        I: <input id="iparam" type="number" min="0" max="1" step=".01" value="0"/>
+                        D: <input id="dparam" type="number" min="0" max="1" step=".01" value=".1"/>
+                        IMAX: <input id="imax" type="number" min="0" max="100" value="0"/>
+                    </div>
+                    <div>
+                        Roll-Corr: <input id="rollcorr" type="number" min="-1" max="1" step=".1" value=".1"/>
+                        Pitch-Corr: <input id="pitchcorr" type="number" min="-1" max="1" step=".1" value=".1"/>
+                        Yaw-Corr: <input id="yawcorr" type="number" min="-1" max="1" step=".1" value="0"/>
+                        Gyro-alpha: <input id="gyroalpha" type="number" min="0" max="1" step=".1" value="0.9"/>
+                    </div>
+                    <div>
+                        Burst: <input id="burst" type="number" min="-100" max="100" step="1" value="0"/>
+                        Burst Duration: <input id="burstDuration" type="number" min="0" max="1000" step="50" value="0"/>
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        <textarea id="log" lines="15" col="20">Output log</textarea>
+                    </div>
+                    <div id="sensors"></div>
+                </td>
+            </tr>
+        </table>
+        <div><input id="reset" type=BUTTON OnClick="btnPressed('RESET');" VALUE="RESET"/></div>
     </div>
+</div>
+<div>
+    <form id="code_form" method="POST">
+        <textarea id="code" name="code">var c=1;while(true){robot.sendControlMessage('SPEED',10*c);c=(-1)*c;robot.sleep('1000');}</textarea>
+    </form>
+			<span>
+			    <input id="edit_btn" type=BUTTON OnClick="enableEditor(!editorEnabled);" value="EDIT"/>
+				<input id="run_btn" type=BUTTON OnClick="executeBtnPressed(true);" value="RUN" disabled/>
+				<input id="stop_btn" type=BUTTON OnClick="executeBtnPressed(false);" value="STOP"/>
+			</span>
 </div>
 </body>
 </html>

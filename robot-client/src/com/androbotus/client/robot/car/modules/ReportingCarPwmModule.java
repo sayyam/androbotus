@@ -16,11 +16,13 @@
  */
 package com.androbotus.client.robot.car.modules;
 
-import com.androbotus.client.contract.LocalTopics;
+import com.androbotus.client.contract.LocalAttitudeParameters;
+import com.androbotus.client.contract.Topics;
 import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.Message;
-import com.androbotus.mq2.core.impl.MessagePoolImpl;
+import com.androbotus.mq2.core.impl.DummyMessagePoolImpl;
+import com.androbotus.mq2.core.impl.RemoteMessageBrokerImpl;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
 
@@ -30,21 +32,21 @@ import com.androbotus.mq2.log.Logger.LogType;
  *
  */
 public class ReportingCarPwmModule extends CarPwmModuleImpl{
-	//private final static String TAG = "ReportingPwmModule";
+	/**
+	 * How often to send remote message, ms 
+	 */
+	private final static int MESSAGE_LATENCY = 50;
 	
-	private String name;
-	
+	private long time = System.currentTimeMillis();
+
+
 	/**
 	 * Creates reporting pwm module
 	 * @param ioio the ioio instance
-	 * @param pin the pin to connect to
-	 * @param parameterName the name of the pwm module to report 
-	 * @param startValue the initial value to be set to pwm whenever the module starts
 	 * @param logger the logger
 	 */
-	public ReportingCarPwmModule(IOIOContext context, int pin, String name, int startValue, Logger logger) {
-		super(context, pin, startValue, logger);
-		this.name = name;
+	public ReportingCarPwmModule(IOIOContext context, int startValue, Logger logger) {
+		super(context, logger);
 	}
 	
 	@Override
@@ -53,14 +55,41 @@ public class ReportingCarPwmModule extends CarPwmModuleImpl{
 		reportAttitude();
 	}
 	
+	private AttitudeMessage createAttitudeMessage() throws Exception {
+		//TODO: used MessagePool instead of DummyMessagePool
+		AttitudeMessage am = DummyMessagePoolImpl.getInstance().getMessage(AttitudeMessage.class);
+		am.getParameterMap().put(LocalAttitudeParameters.FL.name(), currentSpeed);
+		am.getParameterMap().put(LocalAttitudeParameters.FR.name(), currentSteer);
+		
+		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_ROLL.name(), currentOrientation[0]);
+		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_PITCH.name(), currentOrientation[1]);
+		am.getParameterMap().put(LocalAttitudeParameters.SENSOR_YAW.name(), currentOrientation[2]);
+				
+		return am;
+	}
+	
 	private void reportAttitude(){
+		
 		try {
-			AttitudeMessage am = MessagePoolImpl.getInstance().getMessage(AttitudeMessage.class);
-			am.getParameterMap().put(name, getValue());
-			getBroker().pushMessage(LocalTopics.ATTITUDE.name(), am);
 			//getLogger().log(LogType.DEBUG, String.format("%s = %s", name, getValue()));
+			long now = System.currentTimeMillis();
+			
+			//push message to the server
+			if (now - time > MESSAGE_LATENCY){
+				AttitudeMessage am = createAttitudeMessage();
+				getBroker().pushMessage(Topics.ATTITUDE.name(), am);
+				
+				//SocketMessage sm = new SocketMessage();
+				//sm.setTopicName(Topics.ATTITUDE.name());
+				//sm.setEmbeddedMessage(am);
+				if (getBroker() instanceof RemoteMessageBrokerImpl){
+					((RemoteMessageBrokerImpl)getBroker()).pushMessageRemote(Topics.ATTITUDE.name(), am);	
+				}
+				time = System.currentTimeMillis();
+			}
 		} catch (Exception e){
-			getLogger().log(LogType.ERROR, String.format("Exception while reporting attitude: %s", e.getMessage()));
+			getLogger().log(LogType.ERROR, String.format("Exception logging attitude: %s", e.getMessage()));
 		}
 	}
+
 }
