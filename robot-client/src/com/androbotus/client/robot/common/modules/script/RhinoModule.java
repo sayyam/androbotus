@@ -1,15 +1,9 @@
 package com.androbotus.client.robot.common.modules.script;
 
-import java.nio.charset.Charset;
-
-import org.codehaus.jackson.Base64Variant;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
-
-import android.util.Base64;
 
 import com.androbotus.client.contract.Sensors;
 import com.androbotus.mq2.contract.ControlMessage;
@@ -47,10 +41,13 @@ public class RhinoModule extends AsyncModule {
 	private final static String GYRO_X = "GYRO_X";
 	private final static String GYRO_Y = "GYRO_Y";
 	private final static String GYRO_Z = "GYRO_Z";
-
+	
+	static {
+		ContextFactory.initGlobal(new MyFactory());	
+	}
+	
 	public RhinoModule(Logger logger) {
 		super(logger);
-		ContextFactory.initGlobal(new MyFactory());
 	}
 
 	private long lastUpdatedOrientation = System.currentTimeMillis();

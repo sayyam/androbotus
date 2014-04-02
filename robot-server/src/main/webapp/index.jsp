@@ -93,9 +93,6 @@
 			}
 
 			function sendControlData(controlJson){
-                //$.post('http://localhost:8080/androbotus/webaccess', controlJson,
-                //    function(){appendToLog('success');}
-                //);
                 $('#payload').attr('value',controlJson);
                 $.ajax({
                     url: 'http://localhost:8080/androbotus/webaccess',
@@ -105,6 +102,12 @@
                     success: function(data) {appendToLog("success");}
                 });
                 $('#payload').attr('value',"");
+			}
+			
+			function sendElementValue(code, element) {
+	        	console.log("changed " + element.val());					
+				var controlJson = createControlJson(code, element.val());
+				sendControlData(controlJson);
 			}
 
 			//append the given text string to the end of log stream
@@ -169,11 +172,11 @@
 				} else if (code == 'trimForward') {
 					//trim pitch forward: nose down
 					type = 'PITCH';
-					value = -1;
+					value = 1;
 				} else if (code == 'trimBackward') {
 					//trim pitch backward: nose up
 					type = 'PITCH';
-					value = 1;
+					value = -1;
 				} else if (code == 'trimYawLeft') {
 					//trim yaw left
 					type = 'YAW';
@@ -351,21 +354,6 @@
             });
 		}
 
-		//bind parameter input boxes to listen the keyboard events
-		function postParameter(code, element) {
-	        console.log("changed " + element.val());
-			//$(this).data("previousValue", $(this).val());
-					
-			var controlJson = createControlJson(code, element.val());
-			//send new parameter
-			$.post('http://localhost:8080/androbotus/webaccess',
-				controlJson,
-    			function(){
-    			    appendToLog('Updated param:' + code + ":" + element.val());
-    			}
-    		);
-		}
-
         var attitude = {};
 		function updateAttitude() {
 			$.ajax({
@@ -446,27 +434,17 @@
             var burstDuration = $("#burstDuration");
 			var codeEditor = $();
 			
-            pparam.bind('click', function(){postParameter('PPARAM', pparam);});
-            iparam.bind('click', function(){postParameter('IPARAM', iparam);});
-            dparam.bind('click', function(){postParameter('DPARAM', dparam);});
-            imax.bind('click', function(){postParameter('IMAX', imax);});
-            rollcorr.bind('click', function(){postParameter('ROLL_CORR', rollcorr);});
-            pitchcorr.bind('click', function(){postParameter('PITCH_CORR', pitchcorr);});
-            yawcorr.bind('click', function(){postParameter('YAW_CORR', yawcorr);});
-            gyroalpha.bind('click', function(){postParameter('LOW_PASS_GYRO', gyroalpha);});
-			burst.bind('click', function(){postParameter('BURST', burst);});
-			burstDuration.bind('click', function(){postParameter('BURST_DURATION', burstDuration);});
-			
-            //init all the parameters
-            //postParameter('PPARAM', pparam);
-            //postParameter('IPARAM', iparam);
-            //postParameter('DPARAM', dparam);
-            //postParameter('IMAX', imax);
-            //postParameter('ROLL_CORR', rollcorr);
-            //postParameter('PITCH_CORR', pitchcorr);
-            //postParameter('YAW_CORR', yawcorr);
-            //postParameter('LOW_PASS_GYRO', gyroalpha);
-			
+            pparam.bind('click', function(){sendElementValue('PPARAM', pparam);});
+            iparam.bind('click', function(){sendElementValue('IPARAM', iparam);});
+            dparam.bind('click', function(){sendElementValue('DPARAM', dparam);});
+            imax.bind('click', function(){sendElementValue('IMAX', imax);});
+            rollcorr.bind('click', function(){sendElementValue('ROLL_CORR', rollcorr);});
+            pitchcorr.bind('click', function(){sendElementValue('PITCH_CORR', pitchcorr);});
+            yawcorr.bind('click', function(){sendElementValue('YAW_CORR', yawcorr);});
+            gyroalpha.bind('click', function(){sendElementValue('LOW_PASS_GYRO', gyroalpha);});
+			burst.bind('click', function(){sendElementValue('BURST', burst);});
+			burstDuration.bind('click', function(){sendElementValue('BURST_DURATION', burstDuration);});
+						
 			//init code editor
 			editor = CodeMirror.fromTextArea(document.getElementById("code"), {
 			    autoCloseBrackets: true,

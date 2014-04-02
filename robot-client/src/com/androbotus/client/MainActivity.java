@@ -17,7 +17,8 @@
 package com.androbotus.client;
 
 import ioio.lib.util.IOIOLooper;
-import ioio.lib.util.android.IOIOActivity;
+import ioio.lib.util.IOIOLooperProvider;
+import ioio.lib.util.android.IOIOAndroidApplicationHelper;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.hardware.SensorManager;
@@ -52,7 +54,6 @@ import com.androbotus.client.contract.Sensors;
 import com.androbotus.client.ioio.IOIOContext;
 import com.androbotus.client.ioio.Looper;
 import com.androbotus.client.robot.AbstractRobot;
-import com.androbotus.client.robot.car.RoboticCarImpl;
 import com.androbotus.client.robot.quad.RoboticQuadImpl;
 import com.androbotus.mq2.contract.AttitudeMessage;
 import com.androbotus.mq2.contract.ControlMessage;
@@ -66,7 +67,10 @@ import com.androbotus.mq2.core.impl.TCPRemoteConnection;
 import com.androbotus.mq2.log.Logger;
 import com.androbotus.mq2.log.Logger.LogType;
 
-public class MainActivity extends IOIOActivity implements TopicListener{
+public class MainActivity extends Activity implements TopicListener, IOIOLooperProvider {
+	
+	private final IOIOAndroidApplicationHelper ioioHelper = new IOIOAndroidApplicationHelper(
+			this, this);
 
 	private final static String TAG = "Main Activity";
 	
@@ -134,9 +138,6 @@ public class MainActivity extends IOIOActivity implements TopicListener{
         
         //init modules
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        SurfaceView sv = (SurfaceView)findViewById(R.id.cameraView);
-        robot = //new RoboticCarImpl(sensorManager, sv, ioioContext, runningLogger);
-        		new RoboticQuadImpl(sensorManager, sv, ioioContext, runningLogger);
         
         final EditText serverAddressField = (EditText) findViewById(R.id.ipAddress);
         serverAddressField.setText(ipAddress);
@@ -188,6 +189,9 @@ public class MainActivity extends IOIOActivity implements TopicListener{
         gyroOutput = (TextView) findViewById(R.id.gyroOutput);
         gravityOutput = (TextView) findViewById(R.id.gravityOutput);
         rvectorOutput = (TextView) findViewById(R.id.rvectorOutput);
+        
+        //IOIO initializaion
+        ioioHelper.create();
     }
     
     private void initProgressBar(SeekBar sb, int defaultV){
@@ -240,6 +244,10 @@ public class MainActivity extends IOIOActivity implements TopicListener{
     		return;
     	}
     	
+        SurfaceView sv = (SurfaceView)findViewById(R.id.cameraView);
+        robot = //new RoboticCarImpl(sensorManager, sv, ioioContext, runningLogger);
+        		new RoboticQuadImpl(sensorManager, sv, ioioContext, runningLogger);
+    	
     	//register robot
     	robot.subscribe(messageBroker, LocalTopics.DUMMY.name());
     	robot.start();
@@ -255,7 +263,9 @@ public class MainActivity extends IOIOActivity implements TopicListener{
     	//lock the screen
     	wakeLock.acquire();
     	started = true;
-		return;
+    	
+    	//initialize ioio
+    	ioioHelper.start();
 	}
     
     private void stop(){
@@ -299,8 +309,10 @@ public class MainActivity extends IOIOActivity implements TopicListener{
     			//do nothing
     		}
 		}
+    	//stop ioio
+    	ioioHelper.stop();
     }
-        
+            
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.activity_main, menu);
@@ -484,6 +496,7 @@ public class MainActivity extends IOIOActivity implements TopicListener{
     protected void onDestroy() {
     	super.onDestroy();
     	runningLogger.stop();
+    	ioioHelper.destroy();
     }
     
     @Override
@@ -500,12 +513,11 @@ public class MainActivity extends IOIOActivity implements TopicListener{
     }
     
     @Override
-    protected IOIOLooper createIOIOLooper() {
+	public IOIOLooper createIOIOLooper(String connectionType, Object extra) {
     	Looper looper = new Looper(ioioContext, runningLogger);
-    	
     	return looper;
-    }
-        
+	}
+            
     private enum FieldNames {
     	Accel_X, Accel_Y, Accel_Z, 
     	Orient_X, Orient_Y, Orient_Z;
