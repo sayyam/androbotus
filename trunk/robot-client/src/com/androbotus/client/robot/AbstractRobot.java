@@ -90,30 +90,6 @@ public abstract class AbstractRobot extends AbstractModule {
 	
 	@Override
 	public void start() {
-		/*try {
-			if (IOIOEnabled){
-				ioio = IOIOFactory.create();
-				try {
-					getLogger().log(LogType.DEBUG, "connecting IOIO..." + ioio.getState().name());
-					ioio.waitForConnect();
-					Thread.sleep(1000);
-					getLogger().log(LogType.DEBUG, "IOIO connected..." + ioio.getState().name());
-				} catch (IncompatibilityException e){
-					getLogger().log(LogType.ERROR, "QuadPWMModule.start(). Can't connect IOIO - incompatible", e);
-				} catch (ConnectionLostException e) {
-					getLogger().log(LogType.ERROR, "QuadPWMModule.start(). Can't connect IOIO - connection lost", e);
-				}
-				if (!ioio.getState().equals(State.CONNECTED)){
-					throw new ConnectionLostException();
-				}
-				Thread.sleep(1000);//give it some time to initialize ioio	
-			}
-		} catch (InterruptedException e){
-			//do nothing
-		} catch (ConnectionLostException e) {
-			getLogger().log(LogType.ERROR, String.format("AbstractRobot.start(). Can't start IOIO\n%s", e.getMessage()), e);
-		}*/
-		
 		//once IOIO is started, can start the robot
 		
 		if (getModules() == null){

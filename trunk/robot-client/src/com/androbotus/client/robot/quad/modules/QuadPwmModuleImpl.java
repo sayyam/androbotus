@@ -225,7 +225,7 @@ public class QuadPwmModuleImpl extends IOIOModule {
 				burstExpiresIn = (long)cm.getValue();
 				getLogger().log(LogType.DEBUG, String.format("Burst factor: %s", burstFactor));
 			} else if (controlName.equals("ROLL_BURST")){
-				if (cm.getValue() > 0){
+				if (cm.getValue() < 0){
 					rollBurst = 1;
 				} else {
 					rollBurst = -1;
@@ -520,16 +520,16 @@ public class QuadPwmModuleImpl extends IOIOModule {
 				&& pinsBound //all pins should be ready 
 				)
 		{
-			int fl = 1000 + 10 * Math.round(thrustValues[0]);
+			int fl = 1000 +  Math.round(thrustValues[0] * 10);
 			getContext().getLooper().setValue("FL", fl);
 			
-			int fr = 1000 + 10 * Math.round(thrustValues[1]);
+			int fr = 1000 + Math.round(thrustValues[1] * 10);
 			getContext().getLooper().setValue("FR", fr);
 			
-			int rl = 1000 + 10 * Math.round(thrustValues[2]);
+			int rl = 1000 + Math.round(thrustValues[2] * 10);
 			getContext().getLooper().setValue("RL", rl);
 			
-			int rr = 1000 + 10 * Math.round(thrustValues[3]);
+			int rr = 1000 + Math.round(thrustValues[3] * 10);
 			getContext().getLooper().setValue("RR", rr);
 			
 			if (firstIOIOSignal){

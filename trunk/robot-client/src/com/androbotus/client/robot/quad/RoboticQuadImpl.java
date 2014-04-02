@@ -69,7 +69,7 @@ public class RoboticQuadImpl extends AbstractRobot{
 		modules.add(new ModuleEntry(new SensorModule(sensorManager, 40, getLogger()), new String[]{Topics.CONTROL.name()}));
 		
 		//add video module. This module will stream video to the server 
-		modules.add(new ModuleEntry(new VideoModuleImpl(view, 50, getLogger()), new String[]{Topics.VIDEO.name()}));
+		//modules.add(new ModuleEntry(new VideoModuleImpl(view, 50, getLogger()), new String[]{Topics.VIDEO.name()}));
 		
 		//add radar module to track and avoid obstacles
 		//modules.add(new ModuleEntry(new RadarModule(ioio, 1, new int[]{6}, new int[]{7}, new int[]{8}, 10, getLogger(), isIOIOEnabled()), new String[]{Topics.CONTROL.name()}));
