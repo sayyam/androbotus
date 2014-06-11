@@ -20,6 +20,7 @@ import android.hardware.SensorManager;
 import android.opengl.Matrix;
 
 import com.androbotus.client.contract.Sensors;
+import com.androbotus.client.util.MathUtils;
 import com.androbotus.mq2.contract.SensorMessage;
 
 /**
@@ -88,12 +89,24 @@ public class RVectorSensorHandler extends SimpleSensorHandler {
 		//SensorManager.getAngleChange(result, currentRotationMatrix, referenceRotationMatrix);
 		SensorManager.getOrientation(currentRotationMatrix, result);
 		
-		applyDelta(result, referenceVector);
-		convertToDegrees(result);
+		//applyDelta(result, referenceVector);
+		//convertToDegrees(result);
+		applyDeltaAndConvert(result, referenceVector);
 		remapVector(result, remapX, remapY);
 		yrpToRyp(result);
 		
 		return result;
+	}
+	
+	private void applyDeltaAndConvert(float[] vector, float[] reference){
+		for (int i = 0; i < vector.length; i++) {
+			int cur = (int)Math.round(Math.toDegrees(vector[i]));
+			int ref = (int)Math.round(Math.toDegrees(reference[i]));
+			cur = MathUtils.translateAgle(cur);
+			ref = MathUtils.translateAgle(ref);
+			
+			vector[i] = MathUtils.angleDiff(cur, ref);
+		}
 	}
 	
 	private void applyDelta(float[] vector, float[] reference){
