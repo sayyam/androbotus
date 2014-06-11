@@ -372,7 +372,7 @@
        			    updateGuage(rollChart, -90, 90, attitude.attitudeMap.SENSOR_ROLL);
        		    }
        		    if (pitchChart){
-       			    updateGuage(pitchChart, -90, 90, attitude.attitudeMap.SENSOR_PITCH);
+       			    updateGuage(pitchChart, -180, 180, attitude.attitudeMap.SENSOR_PITCH);
        		    }
        		    if (yawChart){
                     updateGuage(yawChart, -180, 180, attitude.attitudeMap.SENSOR_YAW);
@@ -399,7 +399,7 @@
         var rlChart = createIndivThrust('rl-thrust', 'RL');
         var rrChart = createIndivThrust('rr-thrust', 'RR');
         var rollChart = createRollPitchGuage('roll', 'Roll', -90, 90, true);
-        var pitchChart = createRollPitchGuage('pitch', 'Pitch', -90, 90, true);
+        var pitchChart = createRollPitchGuage('pitch', 'Pitch', -180, 180, true);
         var yawChart = createRollPitchGuage('yaw', 'Yaw', -180, 180, false);
 
 		$(document).ready(function() {

@@ -71,8 +71,8 @@ public abstract class AbstractSensorHandler {
 	 * @param values array of values. The length of the array must be == getValuesLength()
 	 */
 	public void setValues(String valuesKey, float[] values){
-		if (values.length != getValuesLength()){
-			throw new IllegalArgumentException("SensorHandler.setValues(). Values length must be equals to the on returned by getValuesLength");
+		if (values.length < getValuesLength()){
+			throw new IllegalArgumentException("SensorHandler.setValues(). Values length must be not less than the one returned by getValuesLength");
 		}
 	
 		if (!map.containsKey(valuesKey)){

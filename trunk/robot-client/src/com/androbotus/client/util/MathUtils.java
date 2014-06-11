@@ -22,38 +22,34 @@ package com.androbotus.client.util;
  *
  */
 public class MathUtils {
-
+	
 	/**
-	 * Get the current roll angle given the current quaternion and the quaternion of the reference CS
-	 * @param currentQuat
-	 * @param startQuat
-	 * @return
+	 * Calculates minimal angle difference (left - right) between two angles
+	 * @param left the left angle
+	 * @param right the right angle
+	 * @return the difference
 	 */
-	public static float getRoll(float[] currentQuat, float[] startQuat){
-		//TODO: make actual implementation
-		return currentQuat[0];
+	public static int angleDiff(int left, int right){
+		int diff = left - right;
+		return translateAgle(diff);
 	}
 	
 	/**
-	 * Get the current pitch angle given the current quaternion and the quaternion of the reference CS
-	 * @param currentQuat
-	 * @param startQuat
-	 * @return
+	 * Translates given angle (degrees) into [-180,180] range
+ 	 * @param angle the given angle to translate
+ 	 * @return the translated angle 
 	 */
-	public static float getPitch(float[] currentQuat, float[] startQuat){
-		//TODO: make actual implementation
-		return currentQuat[1];
-	}
-
-	/**
-	 * Get the current yaw angle given the current quaternion and the quaternion of the reference CS
-	 * @param currentQuat
-	 * @param startQuat
-	 * @return
-	 */
-	public static float getYaw(float[] currentQuat, float[] startQuat){
-		//TODO: make actual implementation
-		return currentQuat[2];
+	public static int translateAgle(int angle){
+		if (angle == 0)
+			return 0;
+		
+		int d = angle/180;
+		if (d%2 == 0){
+			return angle%180;
+		}
+		int signum = Math.abs(angle)/angle;
+		
+		return angle%180 - signum*180;
 	}
 
 }
